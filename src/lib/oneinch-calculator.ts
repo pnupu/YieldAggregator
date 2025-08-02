@@ -1,5 +1,5 @@
 import { crossChainExecutor } from './fusion-plus';
-import { TOKEN_ADDRESSES } from './types';
+import { TOKEN_ADDRESSES, AAVE_TOKEN_ADDRESSES } from './types';
 import axios from 'axios';
 import { env } from '../env.js';
 
@@ -194,6 +194,7 @@ export class OneInchCalculatorService {
       const fromChainId = this.CHAIN_IDS[fromChain as keyof typeof this.CHAIN_IDS];
       const toChainId = this.CHAIN_IDS[toChain as keyof typeof this.CHAIN_IDS];
       
+      // For cross-chain swaps, use underlying token addresses (not Aave tokens)
       const fromTokenAddress = TOKEN_ADDRESSES[fromAsset as keyof typeof TOKEN_ADDRESSES]?.[fromChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
       const toTokenAddress = TOKEN_ADDRESSES[toAsset as keyof typeof TOKEN_ADDRESSES]?.[toChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
 
@@ -201,11 +202,46 @@ export class OneInchCalculatorService {
       console.log(`From token address: ${fromTokenAddress}`);
       console.log(`To token address: ${toTokenAddress}`);
 
-      // Convert amount to wei (assuming 18 decimals for most tokens, 6 for USDC/USDT)
-      const decimals = ['USDC', 'USDT'].includes(fromAsset) ? 6 : 18;
-      const amountInWei = (parseFloat(amount) * Math.pow(10, decimals)).toString();
+      // Convert USD amount to token amount, then to wei
+      const getTokenPrice = (asset: string) => {
+        // Approximate token prices (in production, get from price feeds)
+        const prices: Record<string, number> = {
+          'USDC': 1.0,
+          'USDT': 1.0,
+          'DAI': 1.0,
+          'WETH': 3500, // ~$3500 per ETH
+          'WBTC': 40000, // ~$40,000 per WBTC
+          'weETH': 3500,
+          'wstETH': 3500,
+          'cbBTC': 40000,
+          'cbETH': 3500,
+          'ezETH': 3500,
+          'USDe': 1.0,
+          'sUSDe': 1.0,
+          'RLUSD': 1.0,
+          'AAVE': 100, // ~$100 per AAVE
+          'FRAX': 1.0,
+          'CRV': 0.5, // ~$0.50 per CRV
+          'BAL': 5, // ~$5 per BAL
+          'ARB': 1.5, // ~$1.50 per ARB
+          'OP': 2.5, // ~$2.50 per OP
+          'MATIC': 0.8, // ~$0.80 per MATIC
+        };
+        return prices[asset] ?? 1.0;
+      };
+
+      const getDecimals = (asset: string) => {
+        if (['USDC', 'USDT'].includes(asset)) return 6;
+        if (['WBTC', 'cbBTC'].includes(asset)) return 8;
+        return 18; // Default for most tokens
+      };
+
+      const tokenPrice = getTokenPrice(fromAsset);
+      const tokenAmount = parseFloat(amount) / tokenPrice; // Convert USD to token amount
+      const decimals = getDecimals(fromAsset);
+      const amountInWei = (tokenAmount * Math.pow(10, decimals)).toString();
       
-      console.log(`Converting ${amount} ${fromAsset} to wei: ${amountInWei} (${decimals} decimals)`);
+      console.log(`Converting $${amount} USD to ${tokenAmount} ${fromAsset} (price: $${tokenPrice}) to wei: ${amountInWei} (${decimals} decimals)`);
 
       const costs = await crossChainExecutor.estimateExecutionCosts({
         fromChain: fromChainId,

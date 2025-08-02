@@ -202,7 +202,6 @@ export function YieldCalculator() {
     if (typeof window !== 'undefined') {
       const currentPositionStr = localStorage.getItem('calculatorCurrentPosition');
       const targetPositionStr = localStorage.getItem('calculatorTargetPosition');
-      let shouldAutoCalculate = false;
       
       if (currentPositionStr) {
         try {
@@ -216,7 +215,6 @@ export function YieldCalculator() {
           }));
           // Clear from localStorage after loading
           localStorage.removeItem('calculatorCurrentPosition');
-          shouldAutoCalculate = true;
         } catch (error) {
           console.error('Error parsing current position:', error);
         }
@@ -234,21 +232,12 @@ export function YieldCalculator() {
           }));
           // Clear from localStorage after loading
           localStorage.removeItem('calculatorTargetPosition');
-          shouldAutoCalculate = true;
         } catch (error) {
           console.error('Error parsing target position:', error);
         }
       }
-
-      // Auto-calculate if we loaded positions from floating calculator
-      if (shouldAutoCalculate && currentPositionStr && targetPositionStr) {
-        // Use setTimeout to ensure state has been updated
-        setTimeout(() => {
-          void calculateProfitability();
-        }, 100);
-      }
     }
-  }, [calculateProfitability]);
+  }, []);
 
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation) {
@@ -372,7 +361,18 @@ export function YieldCalculator() {
                   </label>
                   <select
                     value={input.fromChain}
-                    onChange={(e) => setInput(prev => ({ ...prev, fromChain: e.target.value }))}
+                    onChange={(e) => {
+                      const selectedYield = yields.find(y => 
+                        y.protocol === input.fromProtocol && 
+                        y.chain === e.target.value && 
+                        y.asset === input.fromAsset
+                      );
+                      setInput(prev => ({ 
+                        ...prev, 
+                        fromChain: e.target.value,
+                        fromAPY: selectedYield?.currentAPY ?? 0
+                      }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white capitalize"
                   >
                     <option value="ethereum">Ethereum</option>
@@ -389,7 +389,18 @@ export function YieldCalculator() {
                   </label>
                   <select
                     value={input.fromAsset}
-                    onChange={(e) => setInput(prev => ({ ...prev, fromAsset: e.target.value }))}
+                    onChange={(e) => {
+                      const selectedYield = yields.find(y => 
+                        y.protocol === input.fromProtocol && 
+                        y.chain === input.fromChain && 
+                        y.asset === e.target.value
+                      );
+                      setInput(prev => ({ 
+                        ...prev, 
+                        fromAsset: e.target.value,
+                        fromAPY: selectedYield?.currentAPY ?? 0
+                      }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   >
                     <optgroup label="Stablecoins">
@@ -509,7 +520,18 @@ export function YieldCalculator() {
                   </label>
                   <select
                     value={input.toChain}
-                    onChange={(e) => setInput(prev => ({ ...prev, toChain: e.target.value }))}
+                    onChange={(e) => {
+                      const selectedYield = yields.find(y => 
+                        y.protocol === input.toProtocol && 
+                        y.chain === e.target.value && 
+                        y.asset === input.toAsset
+                      );
+                      setInput(prev => ({ 
+                        ...prev, 
+                        toChain: e.target.value,
+                        toAPY: selectedYield?.currentAPY ?? 0
+                      }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white capitalize"
                   >
                     <option value="ethereum">Ethereum</option>
@@ -526,7 +548,18 @@ export function YieldCalculator() {
                   </label>
                   <select
                     value={input.toAsset}
-                    onChange={(e) => setInput(prev => ({ ...prev, toAsset: e.target.value }))}
+                    onChange={(e) => {
+                      const selectedYield = yields.find(y => 
+                        y.protocol === input.toProtocol && 
+                        y.chain === input.toChain && 
+                        y.asset === e.target.value
+                      );
+                      setInput(prev => ({ 
+                        ...prev, 
+                        toAsset: e.target.value,
+                        toAPY: selectedYield?.currentAPY ?? 0
+                      }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   >
                     <optgroup label="Stablecoins">

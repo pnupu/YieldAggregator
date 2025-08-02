@@ -13,12 +13,7 @@ interface FloatingCalculatorProps {
   onSwitch: () => void;
 }
 
-interface PreliminaryCalc {
-  apyGain: number;
-  estimatedAnnualGain: number;
-  estimatedMonthlyCost: number;
-  worthIt: boolean;
-}
+
 
 export function FloatingCalculator({
   currentPosition,
@@ -30,81 +25,13 @@ export function FloatingCalculator({
 }: FloatingCalculatorProps) {
   const [amount, setAmount] = useState<string>("10000");
   const [isMinimized, setIsMinimized] = useState(false);
-  const [realCosts, setRealCosts] = useState<{ totalCost: number; estimatedTime: number } | null>(null);
-
-  // tRPC mutation for getting real 1inch estimates
-  const calculateCostsMutation = api.oneinch.calculateMoveCosts.useMutation();
-
-  // Debounced function to get real estimates
-  const getRealEstimates = useCallback(async () => {
-    if (!currentPosition || !targetPosition || calculateCostsMutation.isPending) {
-      return;
-    }
-
-    try {
-      const dummyAddress = '0x1234567890123456789012345678901234567890';
-      const costs = await calculateCostsMutation.mutateAsync({
-        fromProtocol: currentPosition.protocol,
-        fromChain: currentPosition.chain,
-        fromAsset: currentPosition.asset,
-        toProtocol: targetPosition.protocol,
-        toChain: targetPosition.chain,
-        toAsset: targetPosition.asset,
-        amount,
-        userAddress: dummyAddress,
-      });
-      setRealCosts({
-        totalCost: costs.totalCost,
-        estimatedTime: costs.estimatedTime,
-      });
-    } catch (error) {
-      console.error('Error getting real costs for floating calculator:', error);
-      setRealCosts(null);
-    }
-  }, [currentPosition, targetPosition, amount, calculateCostsMutation]);
-
-  // Get real 1inch estimates when positions change
-  useEffect(() => {
-    if (currentPosition && targetPosition) {
-      const timeoutId = setTimeout(() => {
-        void getRealEstimates();
-      }, 500); // Debounce for 500ms
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setRealCosts(null);
-    }
-  }, [currentPosition, targetPosition, amount, getRealEstimates]);
 
   // Don't show if no positions selected
   if (!currentPosition && !targetPosition) {
     return null;
   }
 
-  const calculatePreliminary = (): PreliminaryCalc | null => {
-    if (!currentPosition || !targetPosition) return null;
 
-    const amountNum = parseFloat(amount) || 10000;
-    const apyGain = (targetPosition.currentAPY ?? 0) - (currentPosition.currentAPY ?? 0);
-    const estimatedAnnualGain = amountNum * (apyGain / 100);
-    
-    // Only use real 1inch costs - no fallbacks
-    const estimatedMonthlyCost = realCosts?.totalCost;
-
-    // Only show analysis if we have real cost data
-    if (!estimatedMonthlyCost) return null;
-
-    const worthIt = estimatedAnnualGain > estimatedMonthlyCost * 12 && apyGain > 0;
-
-    return {
-      apyGain,
-      estimatedAnnualGain,
-      estimatedMonthlyCost,
-      worthIt,
-    };
-  };
-
-  const preliminary = calculatePreliminary();
 
   if (isMinimized) {
     return (
@@ -232,40 +159,7 @@ export function FloatingCalculator({
           )}
         </div>
 
-        {/* Preliminary Calculation */}
-        {preliminary && (
-          <div className="space-y-3 pt-2 border-t border-gray-600">
-            <div className="text-sm font-medium text-gray-300">Quick Analysis</div>
-            
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-gray-700/30 p-2 rounded">
-                <div className="text-gray-400">APY Gain</div>
-                <div className={`font-bold ${preliminary.apyGain > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {preliminary.apyGain > 0 ? '+' : ''}{preliminary.apyGain.toFixed(2)}%
-                </div>
-              </div>
-              
-              <div className="bg-gray-700/30 p-2 rounded">
-                <div className="text-gray-400">Annual Gain</div>
-                <div className={`font-bold ${preliminary.estimatedAnnualGain > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ${preliminary.estimatedAnnualGain.toFixed(0)}
-                </div>
-              </div>
-            </div>
 
-            <div className="text-xs text-center">
-              <div className={`font-medium ${preliminary.worthIt ? 'text-green-400' : 'text-yellow-400'}`}>
-                {preliminary.worthIt ? '✅ Potentially Profitable' : '⚠️ Review Carefully'}
-              </div>
-              <div className="text-gray-400 mt-1">
-                Est. costs: ~${preliminary.estimatedMonthlyCost.toFixed(0)}/move
-                {realCosts && (
-                  <span className="text-blue-400 text-xs ml-1">• 1inch</span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
@@ -279,7 +173,7 @@ export function FloatingCalculator({
           
           {(!currentPosition || !targetPosition) && (
             <div className="text-xs text-gray-400 text-center">
-              Select both current and target positions for full analysis
+              Select both current and target positions for analysis
             </div>
           )}
         </div>

@@ -45,7 +45,7 @@ npm run start        # Start production server
 - **State Management**: TanStack React Query via tRPC
 
 ### Application Purpose
-AI Yield Agent - An autonomous cross-chain yield farming optimizer that leverages 1inch Fusion+ technology to automatically move user funds to the highest-yielding DeFi opportunities across Ethereum and Polygon. The system continuously monitors yield opportunities and executes profitable moves with minimal gas costs.
+Yield Optimizer - A cross-chain yield farming optimizer that leverages 1inch Fusion+ technology to help users move funds to the highest-yielding DeFi opportunities across multiple chains. The system continuously monitors yield opportunities and executes profitable moves with minimal gas costs.
 
 ### Key Components
 

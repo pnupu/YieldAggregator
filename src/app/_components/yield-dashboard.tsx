@@ -50,7 +50,7 @@ const getProtocolLink = (protocol: string, chain: string, poolAddress?: string, 
   return '#';
 };
 
-type SortField = 'protocol' | 'chain' | 'asset' | 'currentAPY' | 'projectedAPY' | 'tvl' | 'risk_score';
+  type SortField = 'protocol' | 'chain' | 'asset' | 'currentAPY' | 'tvl' | 'risk_score';
 type SortDirection = 'asc' | 'desc';
 
 export function YieldDashboard() {
@@ -102,10 +102,7 @@ export function YieldDashboard() {
         aValue = a.currentAPY ?? 0;
         bValue = b.currentAPY ?? 0;
         break;
-      case 'projectedAPY':
-        aValue = a.projectedAPY ?? 0;
-        bValue = b.projectedAPY ?? 0;
-        break;
+      
       case 'tvl':
         aValue = Number(a.tvl);
         bValue = Number(b.tvl);
@@ -411,14 +408,7 @@ export function YieldDashboard() {
                     Current APY <SortIcon field="currentAPY" />
                   </div>
                 </th>
-                <th 
-                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('projectedAPY')}
-                >
-                  <div className="flex items-center gap-2">
-                    Projected APY <SortIcon field="projectedAPY" />
-                  </div>
-                </th>
+
                 <th 
                   className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort('tvl')}
@@ -467,11 +457,7 @@ export function YieldDashboard() {
                       {opportunity.currentAPY ? opportunity.currentAPY.toFixed(2) : '0.00'}%
                     </span>
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-blue-400">
-                      {opportunity.projectedAPY ? opportunity.projectedAPY.toFixed(2) : '0.00'}%
-                    </span>
-                  </td>
+
                   <td className="py-4 px-6 text-gray-300">
                     {formatTVL(opportunity.tvl)}
                   </td>
@@ -498,33 +484,7 @@ export function YieldDashboard() {
         </div>
       </div>
 
-      {/* AI Insights Panel */}
-      <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-6">
-        <h3 className="text-lg font-bold mb-4 flex items-center">
-          <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mr-2"></div>
-          AI Insights
-        </h3>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-start">
-            <span className="text-green-400 mr-2">💡</span>
-            <span>
-              {bestYield ? `Polygon Curve offers the highest yield at ${(bestYield.currentAPY ?? 0).toFixed(2)}% APY for ${bestYield.asset}` : "Analyzing yield opportunities..."}
-            </span>
-          </div>
-          <div className="flex items-start">
-            <span className="text-blue-400 mr-2">⚡</span>
-            <span>
-              Cross-chain moves from Ethereum to Polygon can save up to 90% in gas fees using 1inch Fusion+
-            </span>
-          </div>
-          <div className="flex items-start">
-            <span className="text-yellow-400 mr-2">⚠️</span>
-            <span>
-              Higher APY opportunities on Polygon come with increased smart contract risk
-            </span>
-          </div>
-        </div>
-      </div>
+
 
       {/* Wallet Selection Modal */}
       <WalletModal 

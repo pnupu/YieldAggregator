@@ -109,7 +109,6 @@ export class AaveDataParser {
       chain: item.chain as 'ethereum' | 'polygon' | 'arbitrum' | 'base' | 'optimism',
       asset: item.asset as 'USDC' | 'USDT' | 'DAI' | 'WETH' | 'WBTC' | 'weETH' | 'wstETH' | 'cbBTC' | 'cbETH' | 'ezETH' | 'USDe' | 'sUSDe' | 'RLUSD' | 'AAVE' | 'FRAX' | 'CRV' | 'BAL' | 'ARB' | 'OP' | 'MATIC',
       currentAPY: item.supplyAPR,
-      projectedAPY: item.supplyAPR * 1.05, // Assume 5% growth for projection
       tvl: this.parseTVLToBigInt(item.suppliedUSD),
       risk_score: this.calculateRiskScore(item),
       poolAddress: item.contractAddress,

@@ -49,7 +49,6 @@ model YieldOpportunity {
     chain         String
     asset         String
     currentAPY    Float
-    projectedAPY  Float
     tvl           String   // BigInt as string
     riskScore     Float
     poolAddress   String?

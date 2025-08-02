@@ -140,7 +140,6 @@ export class AaveProvider extends BaseYieldProvider {
       chain: chain as 'ethereum' | 'polygon',
       asset: reserve.symbol as 'USDC' | 'USDT' | 'DAI',
       currentAPY,
-      projectedAPY: currentAPY * 1.05, // Simple 5% optimistic projection
       tvl,
       risk_score: this.calculateRiskScore(currentAPY, tvl, utilizationRate),
       poolAddress: reserve.aTokenAddress,

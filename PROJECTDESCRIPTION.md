@@ -1,8 +1,8 @@
-# AI Yield Agent - Autonomous Cross-Chain Yield Farming
+# Yield Optimizer - Cross-Chain Yield Farming
 
 ## Project Overview
 
-**AI Yield Agent** is an autonomous cross-chain yield farming optimizer that leverages 1inch Fusion+ technology to automatically move user funds to the highest-yielding DeFi opportunities across Ethereum and Polygon. By combining real-time yield monitoring, intelligent cost analysis, and automated execution, the agent maximizes user returns while minimizing manual intervention and gas costs.
+**Yield Optimizer** is a cross-chain yield farming optimizer that leverages 1inch Fusion+ technology to help users move funds to the highest-yielding DeFi opportunities across multiple chains. By combining real-time yield monitoring, intelligent cost analysis, and automated execution, the platform maximizes user returns while minimizing manual intervention and gas costs.
 
 ## 🚀 Current Development Status
 
@@ -13,7 +13,7 @@
 - [x] Environment configuration with type-safe validation
 - [x] PostgreSQL database schema with Prisma
 - [x] ESLint/Prettier configuration and code quality enforcement
-- [x] CLAUDE.md documentation for AI assistance
+- [x] CLAUDE.md documentation for development assistance
 
 **Core Architecture:**
 - [x] 1inch Fusion+ integration (`src/lib/fusion-plus.ts`) with real API calls
@@ -44,8 +44,8 @@
 - [ ] Risk assessment algorithms
 - [ ] Automated execution triggers
 
-**Autonomous Agent:**
-- [ ] `AutonomousYieldAgent` - main orchestration engine
+**Execution Agent:**
+- [ ] `YieldAgent` - main orchestration engine
 - [ ] Continuous monitoring loops
 - [ ] Safety mechanisms and circuit breakers
 - [ ] Execution history and reporting
@@ -71,13 +71,13 @@
 4. **Wallet Connection** - MetaMask integration for user funds
 
 **Medium Priority:**
-5. **AI Decision Engine** - Core profitability calculations
+5. **Decision Engine** - Core profitability calculations
 6. **Protocol Adapters** - Real deposit/withdraw functionality
 7. **Safety Systems** - Maximum limits and risk controls
 8. **Testing Suite** - Unit and integration tests
 
 **Low Priority:**
-9. **Advanced Features** - ML-based predictions, multi-chain expansion
+9. **Advanced Features** - Advanced predictions, multi-chain expansion
 10. **Production Deployment** - Monitoring, logging, error handling
 
 ### Problem Statement
@@ -88,12 +88,12 @@ Current yield farming faces several critical limitations:
 - **Fragmented liquidity**: Best opportunities are scattered across different chains and assets
 - **Complex execution**: Multi-step processes (withdraw → bridge → swap → deposit) create friction and risk
 
-### Solution: Autonomous AI-Powered Optimization
+### Solution: Cross-Chain Yield Optimization
 
-Our AI Yield Agent addresses these challenges through:
-1. **Continuous yield monitoring** across Ethereum and Polygon protocols
+Our Yield Optimizer addresses these challenges through:
+1. **Continuous yield monitoring** across multiple chain protocols
 2. **Intelligent cost-benefit analysis** using 1inch Fusion+ for minimal-cost execution
-3. **Autonomous execution** of profitable yield moves
+3. **Automated execution** of profitable yield moves
 4. **Cross-asset optimization** (USDC ↔ USDT ↔ DAI) for maximum opportunities
 
 ## Technical Architecture
@@ -107,7 +107,7 @@ interface YieldOpportunity {
   chain: 'ethereum' | 'polygon';
   asset: 'USDC' | 'USDT' | 'DAI';
   currentAPY: number;
-  projectedAPY: number;
+
   tvl: bigint;
   risk_score: number;
 }
@@ -326,10 +326,10 @@ class CurveAdapter implements ProtocolAdapter {
 }
 ```
 
-#### 4. Autonomous Execution Engine
+#### 4. Execution Engine
 
 ```typescript
-class AutonomousYieldAgent {
+class YieldAgent {
   private yieldIntelligence: YieldIntelligence;
   private crossChainExecutor: CrossChainExecutor;
   private protocolManager: ProtocolManager;
@@ -497,8 +497,8 @@ const bestUSDC = await yieldManager.getBestYieldForAsset('USDC');
 - [ ] Historical yield data
 - [ ] Transaction history
 
-### 🞯 Phase 3: Intelligence & Autonomous Execution - NEXT
-**Goal**: Build the core AI decision engine and autonomous execution
+### 🞯 Phase 3: Intelligence & Execution - NEXT
+**Goal**: Build the core decision engine and automated execution
 
 #### 3.1 Intelligent Analysis
 ```typescript

@@ -3,7 +3,6 @@ export interface YieldOpportunity {
   chain: 'ethereum' | 'polygon' | 'arbitrum' | 'base' | 'optimism';
   asset: 'USDC' | 'USDT' | 'DAI' | 'WETH' | 'WBTC' | 'weETH' | 'wstETH' | 'cbBTC' | 'cbETH' | 'ezETH' | 'USDe' | 'sUSDe' | 'RLUSD' | 'AAVE' | 'FRAX' | 'CRV' | 'BAL' | 'ARB' | 'OP' | 'MATIC';
   currentAPY: number;
-  projectedAPY: number;
   tvl: bigint;
   risk_score: number;
   poolAddress?: string;

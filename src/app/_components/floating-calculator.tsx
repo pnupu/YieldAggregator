@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { YieldOpportunity } from "@/lib/types";
+import { api } from "@/trpc/react";
 
 interface FloatingCalculatorProps {
   currentPosition: YieldOpportunity | null;
@@ -29,6 +30,41 @@ export function FloatingCalculator({
 }: FloatingCalculatorProps) {
   const [amount, setAmount] = useState<string>("10000");
   const [isMinimized, setIsMinimized] = useState(false);
+  const [realCosts, setRealCosts] = useState<{ totalCost: number; estimatedTime: number } | null>(null);
+
+  // tRPC mutation for getting real 1inch estimates
+  const calculateCostsMutation = api.oneinch.calculateMoveCosts.useMutation();
+
+  // Get real 1inch estimates when positions change
+  useEffect(() => {
+    if (currentPosition && targetPosition) {
+      const getRealEstimates = async () => {
+        try {
+          const dummyAddress = '0x1234567890123456789012345678901234567890';
+          const costs = await calculateCostsMutation.mutateAsync({
+            fromProtocol: currentPosition.protocol,
+            fromChain: currentPosition.chain,
+            fromAsset: currentPosition.asset,
+            toProtocol: targetPosition.protocol,
+            toChain: targetPosition.chain,
+            toAsset: targetPosition.asset,
+            amount,
+            userAddress: dummyAddress,
+          });
+          setRealCosts({
+            totalCost: costs.totalCost,
+            estimatedTime: costs.estimatedTime,
+          });
+        } catch (error) {
+          console.error('Error getting real costs for floating calculator:', error);
+          setRealCosts(null);
+        }
+      };
+      void getRealEstimates();
+    } else {
+      setRealCosts(null);
+    }
+  }, [currentPosition, targetPosition, amount, calculateCostsMutation]);
 
   // Don't show if no positions selected
   if (!currentPosition && !targetPosition) {
@@ -42,13 +78,15 @@ export function FloatingCalculator({
     const apyGain = (targetPosition.currentAPY ?? 0) - (currentPosition.currentAPY ?? 0);
     const estimatedAnnualGain = amountNum * (apyGain / 100);
     
-    // Rough cost estimation
-    const gasCostEth = 50;
-    const gasCostPoly = 2;
-    const fromCost = currentPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
-    const toCost = targetPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
-    const crossChainMultiplier = currentPosition.chain !== targetPosition.chain ? 2 : 1;
-    const estimatedMonthlyCost = (fromCost + toCost) * crossChainMultiplier;
+    // Use real costs if available, otherwise fallback
+    const estimatedMonthlyCost = realCosts?.totalCost ?? (() => {
+      const gasCostEth = 50;
+      const gasCostPoly = 2;
+      const fromCost = currentPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
+      const toCost = targetPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
+      const crossChainMultiplier = currentPosition.chain !== targetPosition.chain ? 2 : 1;
+      return (fromCost + toCost) * crossChainMultiplier;
+    })();
 
     const worthIt = estimatedAnnualGain > estimatedMonthlyCost * 12 && apyGain > 0;
 
@@ -214,7 +252,10 @@ export function FloatingCalculator({
                 {preliminary.worthIt ? '✅ Potentially Profitable' : '⚠️ Review Carefully'}
               </div>
               <div className="text-gray-400 mt-1">
-                Est. costs: ~${preliminary.estimatedMonthlyCost}/move
+                Est. costs: ~${preliminary.estimatedMonthlyCost.toFixed(0)}/move
+                {realCosts && (
+                  <span className="text-blue-400 text-xs ml-1">• 1inch</span>
+                )}
               </div>
             </div>
           </div>

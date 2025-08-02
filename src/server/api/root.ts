@@ -1,5 +1,6 @@
 import { postRouter } from "@/server/api/routers/post";
 import { yieldRouter } from "@/server/api/routers/yield";
+import { oneInchRouter } from "@/server/api/routers/oneinch";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -10,6 +11,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 export const appRouter = createTRPCRouter({
   post: postRouter,
   yield: yieldRouter,
+  oneinch: oneInchRouter,
 });
 
 // export type definition of API

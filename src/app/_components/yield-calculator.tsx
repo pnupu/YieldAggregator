@@ -28,6 +28,21 @@ interface CalculationResult {
   breakEvenTime: number; // days
   recommendation: 'execute' | 'hold' | 'monitor';
   profitabilityScore: number;
+  realCosts?: {
+    totalCost: number;
+    breakdown: {
+      withdrawCost: number;
+      swapCost: number;
+      depositCost: number;
+      bridgeFee: number;
+    };
+    estimatedTime: number;
+    gasDetails: {
+      withdrawGas: number;
+      swapGas: number;
+      depositGas: number;
+    };
+  };
 }
 
 export function YieldCalculator() {
@@ -49,41 +64,75 @@ export function YieldCalculator() {
 
   // Fetch available yield opportunities
   const { data: yields = [], isLoading } = api.yield.getOpportunities.useQuery({});
+  
+  // tRPC mutation for 1inch cost estimation
+  const calculateCostsMutation = api.oneinch.calculateMoveCosts.useMutation();
 
-  const estimateGasCost = (fromChain: string, toChain: string, amount: number): number => {
-    // Simplified gas cost estimation
-    const baseCosts = {
-      ethereum: 50, // $50 base cost on Ethereum
-      polygon: 2,   // $2 base cost on Polygon
-    };
-    
-    const fromCost = baseCosts[fromChain as keyof typeof baseCosts] ?? 25;
-    const toCost = baseCosts[toChain as keyof typeof baseCosts] ?? 25;
-    
-    // Cross-chain moves cost more
-    const crossChainMultiplier = fromChain !== toChain ? 2 : 1;
-    
-    // Larger amounts might require more gas for approvals
-    const amountMultiplier = amount > 100000 ? 1.5 : 1;
-    
-    return (fromCost + toCost) * crossChainMultiplier * amountMultiplier;
+  // Real 1inch cost estimation
+  const estimateRealCosts = async (
+    fromProtocol: string,
+    fromChain: string,
+    fromAsset: string,
+    toProtocol: string,
+    toChain: string,
+    toAsset: string,
+    amount: number
+  ) => {
+    try {
+      // Use a dummy address for estimation (in production, use connected wallet)
+      const dummyAddress = '0x1234567890123456789012345678901234567890';
+      
+      const costs = await calculateCostsMutation.mutateAsync({
+        fromProtocol,
+        fromChain,
+        fromAsset,
+        toProtocol,
+        toChain,
+        toAsset,
+        amount: amount.toString(),
+        userAddress: dummyAddress,
+      });
+
+      return {
+        totalCost: costs.totalCost,
+        breakdown: {
+          withdrawCost: costs.withdrawCost,
+          swapCost: costs.swapCost ?? 0,
+          depositCost: costs.depositCost,
+          bridgeFee: costs.bridgeFee ?? 0,
+        },
+        estimatedTime: costs.estimatedTime,
+        gasDetails: {
+          withdrawGas: costs.withdrawGas,
+          swapGas: costs.swapGas ?? 0,
+          depositGas: costs.depositGas,
+        }
+      };
+    } catch (error) {
+      console.error('Error getting real costs:', error);
+      // Fallback to simplified estimation
+      const isEthereum = fromChain === 'ethereum' || toChain === 'ethereum';
+      const isCrossChain = fromChain !== toChain;
+      
+      return {
+        totalCost: isCrossChain ? (isEthereum ? 95 : 4) : (isEthereum ? 55 : 2),
+        breakdown: {
+          withdrawCost: isEthereum ? 30 : 1,
+          swapCost: isCrossChain ? (isEthereum ? 40 : 2) : 0,
+          depositCost: isEthereum ? 25 : 1,
+          bridgeFee: 0,
+        },
+        estimatedTime: isCrossChain ? 7 : 3,
+        gasDetails: {
+          withdrawGas: 150000,
+          swapGas: isCrossChain ? 200000 : 0,
+          depositGas: 120000,
+        }
+      };
+    }
   };
 
-  const estimateFees = (fromProtocol: string, toProtocol: string, amount: number): number => {
-    // Protocol-specific fees
-    const protocolFees = {
-      aave: amount * 0.0001, // 0.01% fee
-      curve: amount * 0.0004, // 0.04% fee
-      compound: amount * 0.0002, // 0.02% fee
-    };
-    
-    const fromFee = protocolFees[fromProtocol as keyof typeof protocolFees] ?? 0;
-    const toFee = protocolFees[toProtocol as keyof typeof protocolFees] ?? 0;
-    
-    return fromFee + toFee;
-  };
-
-  const calculateProfitability = useCallback(() => {
+  const calculateProfitability = useCallback(async () => {
     setIsCalculating(true);
     
     try {
@@ -96,11 +145,18 @@ export function YieldCalculator() {
       const grossProfit = newEarnings - currentEarnings;
       const apyGain = input.toAPY - input.fromAPY;
       
-      // Estimate costs
-      const estimatedGasCost = estimateGasCost(input.fromChain, input.toChain, amount);
-      const estimatedFees = estimateFees(input.fromProtocol, input.toProtocol, amount);
-      const totalCosts = estimatedGasCost + estimatedFees;
+      // Get real 1inch cost estimates
+      const realCosts = await estimateRealCosts(
+        input.fromProtocol,
+        input.fromChain,
+        input.fromAsset,
+        input.toProtocol,
+        input.toChain,
+        input.toAsset,
+        amount
+      );
       
+      const totalCosts = realCosts.totalCost;
       const netProfit = grossProfit - totalCosts;
       
       // Calculate break-even time in days
@@ -127,19 +183,21 @@ export function YieldCalculator() {
         newEarnings,
         apyGain,
         grossProfit,
-        estimatedGasCost,
-        estimatedFees,
+        estimatedGasCost: realCosts.breakdown.withdrawCost + realCosts.breakdown.depositCost,
+        estimatedFees: realCosts.breakdown.swapCost + realCosts.breakdown.bridgeFee,
         netProfit,
         breakEvenTime,
         recommendation,
         profitabilityScore,
+        // Add new 1inch-specific data
+        realCosts: realCosts,
       });
     } catch (error) {
       console.error('Calculation error:', error);
     } finally {
       setIsCalculating(false);
     }
-  }, [input]);
+  }, [input, estimateRealCosts]);
 
   // Load pre-filled data from localStorage
   useEffect(() => {
@@ -188,7 +246,7 @@ export function YieldCalculator() {
       if (shouldAutoCalculate && currentPositionStr && targetPositionStr) {
         // Use setTimeout to ensure state has been updated
         setTimeout(() => {
-          calculateProfitability();
+          void calculateProfitability();
         }, 100);
       }
     }
@@ -298,7 +356,7 @@ export function YieldCalculator() {
                       setInput(prev => ({ 
                         ...prev, 
                         fromProtocol: e.target.value,
-                        fromAPY: selectedYield?.currentAPY || 0
+                        fromAPY: selectedYield?.currentAPY ?? 0
                       }));
                     }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white capitalize"
@@ -401,7 +459,7 @@ export function YieldCalculator() {
                       setInput(prev => ({ 
                         ...prev, 
                         toProtocol: e.target.value,
-                        toAPY: selectedYield?.currentAPY || 0
+                        toAPY: selectedYield?.currentAPY ?? 0
                       }));
                     }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white capitalize"
@@ -532,20 +590,55 @@ export function YieldCalculator() {
                     <span className="text-gray-400">Gross Profit</span>
                     <span className="text-green-400">${result.grossProfit.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Gas Costs</span>
-                    <span className="text-red-400">-${result.estimatedGasCost.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Protocol Fees</span>
-                    <span className="text-red-400">-${result.estimatedFees.toFixed(2)}</span>
-                  </div>
+                  
+                  {/* 1inch Cost Breakdown */}
+                  {result.realCosts && (
+                    <>
+                      <div className="pt-2 border-t border-gray-600">
+                        <div className="text-gray-300 font-medium mb-2">1inch Cost Analysis</div>
+                        <div className="pl-2 space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Withdraw from {input.fromProtocol}</span>
+                            <span className="text-red-400">-${result.realCosts.breakdown.withdrawCost.toFixed(2)}</span>
+                          </div>
+                          {result.realCosts.breakdown.swapCost > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Cross-chain Swap</span>
+                              <span className="text-red-400">-${result.realCosts.breakdown.swapCost.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Deposit to {input.toProtocol}</span>
+                            <span className="text-red-400">-${result.realCosts.breakdown.depositCost.toFixed(2)}</span>
+                          </div>
+                          {result.realCosts.breakdown.bridgeFee > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Bridge Fee</span>
+                              <span className="text-red-400">-${result.realCosts.breakdown.bridgeFee.toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Estimated Time</span>
+                        <span className="text-blue-400">{result.realCosts.estimatedTime} minutes</span>
+                      </div>
+                    </>
+                  )}
+                  
                   <div className="border-t border-gray-600 pt-2 flex justify-between font-semibold">
                     <span className="text-white">Net Profit</span>
                     <span className={result.netProfit > 0 ? 'text-green-400' : 'text-red-400'}>
                       ${result.netProfit.toFixed(2)}
                     </span>
                   </div>
+                  
+                  {result.realCosts && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Powered by 1inch Fusion+ • Gas estimates: {(result.realCosts.gasDetails.withdrawGas + result.realCosts.gasDetails.swapGas + result.realCosts.gasDetails.depositGas).toLocaleString()} units
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

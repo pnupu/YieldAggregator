@@ -9,6 +9,7 @@ interface FloatingCalculatorProps {
   onClearCurrent: () => void;
   onClearTarget: () => void;
   onCalculate: () => void;
+  onSwitch: () => void;
 }
 
 interface PreliminaryCalc {
@@ -24,6 +25,7 @@ export function FloatingCalculator({
   onClearCurrent,
   onClearTarget,
   onCalculate,
+  onSwitch,
 }: FloatingCalculatorProps) {
   const [amount, setAmount] = useState<string>("10000");
   const [isMinimized, setIsMinimized] = useState(false);
@@ -74,7 +76,7 @@ export function FloatingCalculator({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl w-80 max-h-96 overflow-y-auto">
+    <div className="fixed bottom-4 right-4 z-50 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl w-80 max-h-[600px] overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-600">
         <h3 className="text-lg font-semibold text-white">Quick Calculator</h3>
@@ -137,10 +139,24 @@ export function FloatingCalculator({
             </div>
           ) : (
             <div className="bg-gray-700/30 border-2 border-dashed border-gray-600 p-3 rounded-lg text-center">
-              <div className="text-gray-400 text-sm">Click "Add to Calculator" on a yield opportunity</div>
+              <div className="text-gray-400 text-sm">Click &quot;Add to Calculator&quot; on a yield opportunity</div>
             </div>
           )}
         </div>
+
+        {/* Switch Button */}
+        {currentPosition && targetPosition && (
+          <div className="flex justify-center">
+            <button
+              onClick={onSwitch}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              title="Switch positions"
+            >
+              <span className="rotate-90">⇄</span>
+              Switch
+            </button>
+          </div>
+        )}
 
         {/* Target Position */}
         <div className="space-y-2">
@@ -167,7 +183,7 @@ export function FloatingCalculator({
             </div>
           ) : (
             <div className="bg-gray-700/30 border-2 border-dashed border-gray-600 p-3 rounded-lg text-center">
-              <div className="text-gray-400 text-sm">Click "Add to Calculator" on another opportunity</div>
+              <div className="text-gray-400 text-sm">Click &quot;Add to Calculator&quot; on another opportunity</div>
             </div>
           )}
         </div>

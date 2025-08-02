@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "@/trpc/react";
-import type { YieldOpportunity } from "@/lib/types";
+import Link from "next/link";
 
 interface CalculationInput {
   fromProtocol: string;
@@ -50,49 +50,40 @@ export function YieldCalculator() {
   // Fetch available yield opportunities
   const { data: yields = [], isLoading } = api.yield.getOpportunities.useQuery({});
 
-  // Load pre-filled data from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentPositionStr = localStorage.getItem('calculatorCurrentPosition');
-      const targetPositionStr = localStorage.getItem('calculatorTargetPosition');
-      
-      if (currentPositionStr) {
-        try {
-          const currentPos: YieldOpportunity = JSON.parse(currentPositionStr);
-          setInput(prev => ({
-            ...prev,
-            fromProtocol: currentPos.protocol,
-            fromChain: currentPos.chain,
-            fromAsset: currentPos.asset,
-            fromAPY: currentPos.currentAPY ?? 0,
-          }));
-          // Clear from localStorage after loading
-          localStorage.removeItem('calculatorCurrentPosition');
-        } catch (error) {
-          console.error('Error parsing current position:', error);
-        }
-      }
-      
-      if (targetPositionStr) {
-        try {
-          const targetPos: YieldOpportunity = JSON.parse(targetPositionStr);
-          setInput(prev => ({
-            ...prev,
-            toProtocol: targetPos.protocol,
-            toChain: targetPos.chain,
-            toAsset: targetPos.asset,
-            toAPY: targetPos.currentAPY ?? 0,
-          }));
-          // Clear from localStorage after loading
-          localStorage.removeItem('calculatorTargetPosition');
-        } catch (error) {
-          console.error('Error parsing target position:', error);
-        }
-      }
-    }
-  }, []);
+  const estimateGasCost = (fromChain: string, toChain: string, amount: number): number => {
+    // Simplified gas cost estimation
+    const baseCosts = {
+      ethereum: 50, // $50 base cost on Ethereum
+      polygon: 2,   // $2 base cost on Polygon
+    };
+    
+    const fromCost = baseCosts[fromChain as keyof typeof baseCosts] ?? 25;
+    const toCost = baseCosts[toChain as keyof typeof baseCosts] ?? 25;
+    
+    // Cross-chain moves cost more
+    const crossChainMultiplier = fromChain !== toChain ? 2 : 1;
+    
+    // Larger amounts might require more gas for approvals
+    const amountMultiplier = amount > 100000 ? 1.5 : 1;
+    
+    return (fromCost + toCost) * crossChainMultiplier * amountMultiplier;
+  };
 
-  const calculateProfitability = () => {
+  const estimateFees = (fromProtocol: string, toProtocol: string, amount: number): number => {
+    // Protocol-specific fees
+    const protocolFees = {
+      aave: amount * 0.0001, // 0.01% fee
+      curve: amount * 0.0004, // 0.04% fee
+      compound: amount * 0.0002, // 0.02% fee
+    };
+    
+    const fromFee = protocolFees[fromProtocol as keyof typeof protocolFees] ?? 0;
+    const toFee = protocolFees[toProtocol as keyof typeof protocolFees] ?? 0;
+    
+    return fromFee + toFee;
+  };
+
+  const calculateProfitability = useCallback(() => {
     setIsCalculating(true);
     
     try {
@@ -148,40 +139,60 @@ export function YieldCalculator() {
     } finally {
       setIsCalculating(false);
     }
-  };
+  }, [input]);
 
-  const estimateGasCost = (fromChain: string, toChain: string, amount: number): number => {
-    // Simplified gas cost estimation
-    const baseCosts = {
-      ethereum: 50, // $50 base cost on Ethereum
-      polygon: 2,   // $2 base cost on Polygon
-    };
-    
-    const fromCost = baseCosts[fromChain as keyof typeof baseCosts] || 25;
-    const toCost = baseCosts[toChain as keyof typeof baseCosts] || 25;
-    
-    // Cross-chain moves cost more
-    const crossChainMultiplier = fromChain !== toChain ? 2 : 1;
-    
-    // Larger amounts might require more gas for approvals
-    const amountMultiplier = amount > 100000 ? 1.5 : 1;
-    
-    return (fromCost + toCost) * crossChainMultiplier * amountMultiplier;
-  };
+  // Load pre-filled data from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPositionStr = localStorage.getItem('calculatorCurrentPosition');
+      const targetPositionStr = localStorage.getItem('calculatorTargetPosition');
+      let shouldAutoCalculate = false;
+      
+      if (currentPositionStr) {
+        try {
+          const currentPos = JSON.parse(currentPositionStr) as { protocol: string; chain: string; asset: string; currentAPY?: number };
+          setInput(prev => ({
+            ...prev,
+            fromProtocol: currentPos.protocol,
+            fromChain: currentPos.chain,
+            fromAsset: currentPos.asset,
+            fromAPY: currentPos.currentAPY ?? 0,
+          }));
+          // Clear from localStorage after loading
+          localStorage.removeItem('calculatorCurrentPosition');
+          shouldAutoCalculate = true;
+        } catch (error) {
+          console.error('Error parsing current position:', error);
+        }
+      }
+      
+      if (targetPositionStr) {
+        try {
+          const targetPos = JSON.parse(targetPositionStr) as { protocol: string; chain: string; asset: string; currentAPY?: number };
+          setInput(prev => ({
+            ...prev,
+            toProtocol: targetPos.protocol,
+            toChain: targetPos.chain,
+            toAsset: targetPos.asset,
+            toAPY: targetPos.currentAPY ?? 0,
+          }));
+          // Clear from localStorage after loading
+          localStorage.removeItem('calculatorTargetPosition');
+          shouldAutoCalculate = true;
+        } catch (error) {
+          console.error('Error parsing target position:', error);
+        }
+      }
 
-  const estimateFees = (fromProtocol: string, toProtocol: string, amount: number): number => {
-    // Protocol-specific fees
-    const protocolFees = {
-      aave: amount * 0.0001, // 0.01% fee
-      curve: amount * 0.0004, // 0.04% fee
-      compound: amount * 0.0002, // 0.02% fee
-    };
-    
-    const fromFee = protocolFees[fromProtocol as keyof typeof protocolFees] || 0;
-    const toFee = protocolFees[toProtocol as keyof typeof protocolFees] || 0;
-    
-    return fromFee + toFee;
-  };
+      // Auto-calculate if we loaded positions from floating calculator
+      if (shouldAutoCalculate && currentPositionStr && targetPositionStr) {
+        // Use setTimeout to ensure state has been updated
+        setTimeout(() => {
+          calculateProfitability();
+        }, 100);
+      }
+    }
+  }, [calculateProfitability]);
 
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation) {
@@ -214,12 +225,12 @@ export function YieldCalculator() {
     <div className="space-y-8">
       {/* Header with Navigation */}
       <div className="flex items-center justify-between">
-        <a
+        <Link
           href="/"
           className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition-colors text-white"
         >
           ← Back to Dashboard
-        </a>
+        </Link>
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white mb-2">Yield Move Calculator</h1>
           <p className="text-gray-400">
@@ -343,6 +354,32 @@ export function YieldCalculator() {
                 </div>
               </div>
             </div>
+
+            {/* Switch Button */}
+            {input.fromProtocol && input.toProtocol && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    setInput(prev => ({
+                      ...prev,
+                      fromProtocol: prev.toProtocol,
+                      fromChain: prev.toChain,
+                      fromAsset: prev.toAsset,
+                      fromAPY: prev.toAPY,
+                      toProtocol: prev.fromProtocol,
+                      toChain: prev.fromChain,
+                      toAsset: prev.fromAsset,
+                      toAPY: prev.fromAPY,
+                    }));
+                  }}
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  title="Switch current and target positions"
+                >
+                  <span className="rotate-90 text-lg">⇄</span>
+                  Switch Positions
+                </button>
+              </div>
+            )}
 
             {/* Target Position */}
             <div className="border border-gray-600 rounded-lg p-4">

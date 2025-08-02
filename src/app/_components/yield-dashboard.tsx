@@ -116,13 +116,28 @@ export function YieldDashboard() {
 
   const handleNavigateToCalculator = () => {
     // Store selections in localStorage for the calculator page
+    // Convert BigInt to string for serialization
     if (currentPosition) {
-      localStorage.setItem('calculatorCurrentPosition', JSON.stringify(currentPosition));
+      const serializablePosition = {
+        ...currentPosition,
+        tvl: currentPosition.tvl.toString(), // Convert BigInt to string
+      };
+      localStorage.setItem('calculatorCurrentPosition', JSON.stringify(serializablePosition));
     }
     if (targetPosition) {
-      localStorage.setItem('calculatorTargetPosition', JSON.stringify(targetPosition));
+      const serializablePosition = {
+        ...targetPosition,
+        tvl: targetPosition.tvl.toString(), // Convert BigInt to string
+      };
+      localStorage.setItem('calculatorTargetPosition', JSON.stringify(serializablePosition));
     }
     window.location.href = '/calculator';
+  };
+
+  const handleSwitch = () => {
+    const temp = currentPosition;
+    setCurrentPosition(targetPosition);
+    setTargetPosition(temp);
   };
 
   if (isLoading) {
@@ -370,6 +385,7 @@ export function YieldDashboard() {
         onClearCurrent={() => setCurrentPosition(null)}
         onClearTarget={() => setTargetPosition(null)}
         onCalculate={handleNavigateToCalculator}
+        onSwitch={handleSwitch}
       />
     </div>
   );

@@ -5,6 +5,10 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  env: {
+    PORT: process.env.PORT || '3002',
+  },
+};
 
 export default config;

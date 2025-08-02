@@ -17,8 +17,14 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
-    "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "start": "next start -p 3002",
+    "typecheck": "tsc --noEmit",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop yield-optimizer",
+    "pm2:restart": "pm2 restart yield-optimizer",
+    "pm2:delete": "pm2 delete yield-optimizer",
+    "pm2:logs": "pm2 logs yield-optimizer",
+    "pm2:monit": "pm2 monit"
   },
   "dependencies": {
     "@1inch/cross-chain-sdk": "^0.2.1-rc.58",

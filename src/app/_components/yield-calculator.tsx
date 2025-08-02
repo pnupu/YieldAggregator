@@ -121,11 +121,27 @@ export function YieldCalculator() {
       const amount = parseFloat(input.amount);
       const timeHorizonYears = input.timeHorizon / 12;
       
+      console.log('Calculation inputs:', {
+        amount,
+        timeHorizonYears,
+        fromAPY: input.fromAPY,
+        toAPY: input.toAPY,
+        fromAPYType: typeof input.fromAPY,
+        toAPYType: typeof input.toAPY
+      });
+      
       // Calculate earnings
       const currentEarnings = amount * (input.fromAPY / 100) * timeHorizonYears;
       const newEarnings = amount * (input.toAPY / 100) * timeHorizonYears;
       const grossProfit = newEarnings - currentEarnings;
       const apyGain = input.toAPY - input.fromAPY;
+      
+      console.log('Calculation results:', {
+        currentEarnings,
+        newEarnings,
+        grossProfit,
+        apyGain
+      });
       
       // Get real 1inch cost estimates
       const realCosts = await estimateRealCosts(
@@ -415,7 +431,13 @@ export function YieldCalculator() {
                     type="number"
                     step="0.01"
                     value={input.fromAPY}
-                    onChange={(e) => setInput(prev => ({ ...prev, fromAPY: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      // Handle both comma and dot decimal separators
+                      const value = e.target.value.replace(',', '.');
+                      const parsedValue = parseFloat(value) || 0;
+                      console.log('fromAPY input:', { original: e.target.value, processed: value, parsed: parsedValue });
+                      setInput(prev => ({ ...prev, fromAPY: parsedValue }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                     placeholder="0.00"
                   />
@@ -546,7 +568,13 @@ export function YieldCalculator() {
                     type="number"
                     step="0.01"
                     value={input.toAPY}
-                    onChange={(e) => setInput(prev => ({ ...prev, toAPY: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      // Handle both comma and dot decimal separators
+                      const value = e.target.value.replace(',', '.');
+                      const parsedValue = parseFloat(value) || 0;
+                      console.log('toAPY input:', { original: e.target.value, processed: value, parsed: parsedValue });
+                      setInput(prev => ({ ...prev, toAPY: parsedValue }));
+                    }}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                     placeholder="0.00"
                   />

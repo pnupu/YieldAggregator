@@ -128,4 +128,11 @@ export const TOKEN_ADDRESSES = {
     base: '0x4200000000000000000000000000000000000006', // WETH on Base
     optimism: '0x4200000000000000000000000000000000000006', // WETH on Optimism
   },
+  WBTC: {
+    ethereum: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', // WBTC on Ethereum
+    polygon: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', // WBTC on Polygon
+    arbitrum: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f', // WBTC on Arbitrum
+    base: '0x4200000000000000000000000000000000000006', // WBTC on Base (using WETH for now)
+    optimism: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', // WBTC on Optimism
+  },
 } as const;

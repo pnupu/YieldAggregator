@@ -25,6 +25,9 @@ export class OneInchCalculatorService {
   private readonly CHAIN_IDS = {
     ethereum: 1,
     polygon: 137,
+    arbitrum: 42161,
+    base: 8453,
+    optimism: 10,
   };
 
   /**
@@ -46,14 +49,40 @@ export class OneInchCalculatorService {
         instant?: { maxFeePerGas?: string };
       };
 
-      return {
-        standard: parseFloat(gasData.standard?.maxFeePerGas ?? '20') / 1e9, // Convert to Gwei
-        fast: parseFloat(gasData.fast?.maxFeePerGas ?? '25') / 1e9,
-        instant: parseFloat(gasData.instant?.maxFeePerGas ?? '30') / 1e9,
+      const standard = parseFloat(gasData.standard?.maxFeePerGas ?? '20000000000'); // 20 Gwei in wei
+      const fast = parseFloat(gasData.fast?.maxFeePerGas ?? '25000000000'); // 25 Gwei in wei
+      const instant = parseFloat(gasData.instant?.maxFeePerGas ?? '30000000000'); // 30 Gwei in wei
+
+      console.log(`Raw gas prices for chain ${chainId}:`, { standard, fast, instant });
+
+      const gasPricesInGwei = {
+        standard: standard / 1e9, // Convert wei to Gwei
+        fast: fast / 1e9,
+        instant: instant / 1e9,
       };
+
+      console.log(`Gas prices in Gwei for chain ${chainId}:`, gasPricesInGwei);
+
+      return gasPricesInGwei;
     } catch (error) {
       console.error('Error fetching gas prices:', error);
-      throw new Error(`Failed to fetch gas prices for chain ${chainId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Fallback to reasonable gas prices
+      const fallbackPrices = {
+        1: { standard: 20, fast: 25, instant: 30 }, // Ethereum
+        137: { standard: 30, fast: 40, instant: 50 }, // Polygon
+        42161: { standard: 0.1, fast: 0.15, instant: 0.2 }, // Arbitrum
+        8453: { standard: 0.001, fast: 0.002, instant: 0.003 }, // Base
+        10: { standard: 0.001, fast: 0.002, instant: 0.003 }, // Optimism
+      };
+      
+      const fallback = fallbackPrices[chainId as keyof typeof fallbackPrices] ?? { standard: 20, fast: 25, instant: 30 };
+      console.log(`Using fallback gas prices for chain ${chainId}:`, fallback);
+      
+      return {
+        standard: fallback.standard,
+        fast: fallback.fast,
+        instant: fallback.instant,
+      };
     }
   }
 
@@ -78,11 +107,19 @@ export class OneInchCalculatorService {
 
     const gasUnits = withdrawGasEstimates[protocol as keyof typeof withdrawGasEstimates] ?? 150000;
     const gasPriceGwei = gasPrices.standard;
-    const gasCostETH = (gasUnits * gasPriceGwei) / 1e9;
+    const gasCostETH = (gasUnits * gasPriceGwei) / 1e9; // gasPriceGwei is already in Gwei, so divide by 1e9 to get ETH
     
     // Convert to USD (simplified - in production, get real ETH/MATIC prices)
-    const ethPrice = chainId === 1 ? 3500 : 1; // $3500 for ETH, $1 for MATIC (simplified)
+    const ethPrice = chainId === 1 ? 3500 : chainId === 137 ? 1 : 2; // $3500 for ETH, $1 for MATIC, $2 for others
     const costUSD = gasCostETH * ethPrice;
+
+    console.log(`Withdraw costs for ${protocol} on ${chain} (chainId: ${chainId}):`, {
+      gasUnits,
+      gasPriceGwei,
+      gasCostETH,
+      ethPrice,
+      costUSD
+    });
 
     return { gasUnits, costUSD };
   }
@@ -108,10 +145,18 @@ export class OneInchCalculatorService {
 
     const gasUnits = depositGasEstimates[protocol as keyof typeof depositGasEstimates] ?? 120000;
     const gasPriceGwei = gasPrices.standard;
-    const gasCostETH = (gasUnits * gasPriceGwei) / 1e9;
+    const gasCostETH = (gasUnits * gasPriceGwei) / 1e9; // gasPriceGwei is already in Gwei, so divide by 1e9 to get ETH
     
-    const ethPrice = chainId === 1 ? 3500 : 1;
+    const ethPrice = chainId === 1 ? 3500 : chainId === 137 ? 1 : 2; // $3500 for ETH, $1 for MATIC, $2 for others
     const costUSD = gasCostETH * ethPrice;
+
+    console.log(`Deposit costs for ${protocol} on ${chain} (chainId: ${chainId}):`, {
+      gasUnits,
+      gasPriceGwei,
+      gasCostETH,
+      ethPrice,
+      costUSD
+    });
 
     return { gasUnits, costUSD };
   }
@@ -122,31 +167,45 @@ export class OneInchCalculatorService {
   async getSwapQuote(
     fromChain: string,
     toChain: string,
-    asset: string,
+    fromAsset: string,
+    toAsset: string,
     amount: string,
     userAddress: string
   ): Promise<{ costUSD: number; gasUnits: number; bridgeFee: number; estimatedTime: number } | null> {
-    // If same chain, no swap needed
-    if (fromChain === toChain) {
+    // If same chain and same asset, no swap needed
+    if (fromChain === toChain && fromAsset === toAsset) {
       return null;
     }
 
+    // If same chain but different assets, we need a same-chain swap (not cross-chain)
+    if (fromChain === toChain) {
+      console.log(`Same-chain swap: ${fromAsset} to ${toAsset} on ${fromChain}`);
+      // For now, return a simple estimate for same-chain swaps
+      return {
+        costUSD: 5, // Simple estimate for same-chain swap
+        gasUnits: 100000,
+        bridgeFee: 0,
+        estimatedTime: 2,
+      };
+    }
+
+    // Cross-chain swap
     try {
       const fromChainId = this.CHAIN_IDS[fromChain as keyof typeof this.CHAIN_IDS];
       const toChainId = this.CHAIN_IDS[toChain as keyof typeof this.CHAIN_IDS];
       
-      const fromTokenAddress = TOKEN_ADDRESSES[asset as keyof typeof TOKEN_ADDRESSES]?.[fromChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
-      const toTokenAddress = TOKEN_ADDRESSES[asset as keyof typeof TOKEN_ADDRESSES]?.[toChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
+      const fromTokenAddress = TOKEN_ADDRESSES[fromAsset as keyof typeof TOKEN_ADDRESSES]?.[fromChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
+      const toTokenAddress = TOKEN_ADDRESSES[toAsset as keyof typeof TOKEN_ADDRESSES]?.[toChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
 
-      console.log(`Token lookup: ${asset} from ${fromChain} to ${toChain}`);
+      console.log(`Cross-chain token lookup: ${fromAsset} (${fromChain}) to ${toAsset} (${toChain})`);
       console.log(`From token address: ${fromTokenAddress}`);
       console.log(`To token address: ${toTokenAddress}`);
 
       // Convert amount to wei (assuming 18 decimals for most tokens, 6 for USDC/USDT)
-      const decimals = ['USDC', 'USDT'].includes(asset) ? 6 : 18;
+      const decimals = ['USDC', 'USDT'].includes(fromAsset) ? 6 : 18;
       const amountInWei = (parseFloat(amount) * Math.pow(10, decimals)).toString();
       
-      console.log(`Converting ${amount} ${asset} to wei: ${amountInWei} (${decimals} decimals)`);
+      console.log(`Converting ${amount} ${fromAsset} to wei: ${amountInWei} (${decimals} decimals)`);
 
       const costs = await crossChainExecutor.estimateExecutionCosts({
         fromChain: fromChainId,
@@ -188,7 +247,7 @@ export class OneInchCalculatorService {
       const withdrawCosts = await this.estimateWithdrawCosts(fromProtocol, fromChain, fromAsset, amount);
       
       // Get swap costs if cross-chain
-      const swapCosts = await this.getSwapQuote(fromChain, toChain, fromAsset, amount, userAddress);
+      const swapCosts = await this.getSwapQuote(fromChain, toChain, fromAsset, toAsset, amount, userAddress);
       
       // Get deposit costs
       const depositCosts = await this.estimateDepositCosts(toProtocol, toChain, toAsset, amount);

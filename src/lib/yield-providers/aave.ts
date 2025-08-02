@@ -2,6 +2,7 @@ import axios from 'axios';
 import { BaseYieldProvider } from './base';
 import type { YieldOpportunity, PoolData } from '../types';
 import { TOKEN_ADDRESSES } from '../types';
+import { ComprehensiveAaveDataProvider } from '../comprehensive-aave-data';
 
 interface AaveReserveData {
   symbol: string;
@@ -17,8 +18,8 @@ interface AaveReserveData {
 
 export class AaveProvider extends BaseYieldProvider {
   protocol = 'aave' as const;
-  supportedChains = ['ethereum', 'polygon'];
-  supportedAssets = ['USDC', 'USDT', 'DAI'];
+  supportedChains = ['ethereum', 'polygon', 'arbitrum', 'base', 'optimism'];
+  supportedAssets = ['USDC', 'USDT', 'DAI', 'WETH', 'WBTC', 'weETH', 'wstETH', 'cbBTC', 'cbETH', 'ezETH', 'USDe', 'sUSDe', 'RLUSD', 'AAVE', 'FRAX', 'CRV', 'BAL', 'ARB', 'OP', 'MATIC'];
 
   private readonly API_BASE_URLS = {
     ethereum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3',
@@ -30,6 +31,18 @@ export class AaveProvider extends BaseYieldProvider {
       throw new Error(`Unsupported chain: ${chain}`);
     }
 
+    // First try to get comprehensive Aave data
+    try {
+      const comprehensiveOpportunities = ComprehensiveAaveDataProvider.getAaveOpportunities(chain);
+      if (comprehensiveOpportunities.length > 0) {
+        console.log(`Using comprehensive Aave data: ${comprehensiveOpportunities.length} opportunities for ${chain}`);
+        return comprehensiveOpportunities;
+      }
+    } catch (error) {
+      console.warn('Failed to get comprehensive Aave data, falling back to API:', error);
+    }
+
+    // Fallback to API data
     return this.fetchWithRetry(async () => {
       const poolsData = await this.fetchAaveData(chain);
       

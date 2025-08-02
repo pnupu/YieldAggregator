@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { YieldOpportunity } from "@/lib/types";
 import { api } from "@/trpc/react";
 
@@ -35,36 +35,46 @@ export function FloatingCalculator({
   // tRPC mutation for getting real 1inch estimates
   const calculateCostsMutation = api.oneinch.calculateMoveCosts.useMutation();
 
-  // Get real 1inch estimates when positions change
-  useEffect(() => {
-    if (currentPosition && targetPosition) {
-      const getRealEstimates = async () => {
-        try {
-          const dummyAddress = '0x1234567890123456789012345678901234567890';
-          const costs = await calculateCostsMutation.mutateAsync({
-            fromProtocol: currentPosition.protocol,
-            fromChain: currentPosition.chain,
-            fromAsset: currentPosition.asset,
-            toProtocol: targetPosition.protocol,
-            toChain: targetPosition.chain,
-            toAsset: targetPosition.asset,
-            amount,
-            userAddress: dummyAddress,
-          });
-          setRealCosts({
-            totalCost: costs.totalCost,
-            estimatedTime: costs.estimatedTime,
-          });
-        } catch (error) {
-          console.error('Error getting real costs for floating calculator:', error);
-          setRealCosts(null);
-        }
-      };
-      void getRealEstimates();
-    } else {
+  // Debounced function to get real estimates
+  const getRealEstimates = useCallback(async () => {
+    if (!currentPosition || !targetPosition || calculateCostsMutation.isPending) {
+      return;
+    }
+
+    try {
+      const dummyAddress = '0x1234567890123456789012345678901234567890';
+      const costs = await calculateCostsMutation.mutateAsync({
+        fromProtocol: currentPosition.protocol,
+        fromChain: currentPosition.chain,
+        fromAsset: currentPosition.asset,
+        toProtocol: targetPosition.protocol,
+        toChain: targetPosition.chain,
+        toAsset: targetPosition.asset,
+        amount,
+        userAddress: dummyAddress,
+      });
+      setRealCosts({
+        totalCost: costs.totalCost,
+        estimatedTime: costs.estimatedTime,
+      });
+    } catch (error) {
+      console.error('Error getting real costs for floating calculator:', error);
       setRealCosts(null);
     }
   }, [currentPosition, targetPosition, amount, calculateCostsMutation]);
+
+  // Get real 1inch estimates when positions change
+  useEffect(() => {
+    if (currentPosition && targetPosition) {
+      const timeoutId = setTimeout(() => {
+        void getRealEstimates();
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setRealCosts(null);
+    }
+  }, [currentPosition, targetPosition, amount, getRealEstimates]);
 
   // Don't show if no positions selected
   if (!currentPosition && !targetPosition) {

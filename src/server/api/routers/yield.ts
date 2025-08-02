@@ -9,8 +9,13 @@ export const yieldRouter = createTRPCRouter({
   getOpportunities: publicProcedure
     .input(
       z.object({
-        asset: z.enum(["USDC", "USDT", "DAI"]).optional(),
-        chain: z.enum(["ethereum", "polygon"]).optional(),
+        asset: z.enum([
+          "USDC", "USDT", "DAI", "FRAX", "RLUSD", "USDe", "sUSDe",
+          "WETH", "weETH", "wstETH", "cbETH", "ezETH",
+          "WBTC", "cbBTC",
+          "AAVE", "CRV", "BAL", "ARB", "OP", "MATIC"
+        ]).optional(),
+        chain: z.enum(["ethereum", "polygon", "arbitrum", "base", "optimism"]).optional(),
         protocol: z.enum(["aave", "compound", "curve"]).optional(),
       })
     )
@@ -58,8 +63,13 @@ export const yieldRouter = createTRPCRouter({
   getBestOpportunity: publicProcedure
     .input(
       z.object({
-        asset: z.enum(["USDC", "USDT", "DAI"]),
-        chain: z.enum(["ethereum", "polygon"]).optional(),
+        asset: z.enum([
+          "USDC", "USDT", "DAI", "FRAX", "RLUSD", "USDe", "sUSDe",
+          "WETH", "weETH", "wstETH", "cbETH", "ezETH",
+          "WBTC", "cbBTC",
+          "AAVE", "CRV", "BAL", "ARB", "OP", "MATIC"
+        ]),
+        chain: z.enum(["ethereum", "polygon", "arbitrum", "base", "optimism"]).optional(),
       })
     )
     .query(async ({ input }) => {

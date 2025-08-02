@@ -361,6 +361,9 @@ export function YieldCalculator() {
                   >
                     <option value="ethereum">Ethereum</option>
                     <option value="polygon">Polygon</option>
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="base">Base</option>
+                    <option value="optimism">Optimism</option>
                   </select>
                 </div>
 
@@ -373,9 +376,34 @@ export function YieldCalculator() {
                     onChange={(e) => setInput(prev => ({ ...prev, fromAsset: e.target.value }))}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   >
-                    <option value="USDC">USDC</option>
-                    <option value="USDT">USDT</option>
-                    <option value="DAI">DAI</option>
+                    <optgroup label="Stablecoins">
+                      <option value="USDC">USDC</option>
+                      <option value="USDT">USDT</option>
+                      <option value="DAI">DAI</option>
+                      <option value="FRAX">FRAX</option>
+                      <option value="RLUSD">RLUSD</option>
+                      <option value="USDe">USDe</option>
+                      <option value="sUSDe">sUSDe</option>
+                    </optgroup>
+                    <optgroup label="ETH & Variants">
+                      <option value="WETH">WETH</option>
+                      <option value="weETH">weETH</option>
+                      <option value="wstETH">wstETH</option>
+                      <option value="cbETH">cbETH</option>
+                      <option value="ezETH">ezETH</option>
+                    </optgroup>
+                    <optgroup label="BTC & Variants">
+                      <option value="WBTC">WBTC</option>
+                      <option value="cbBTC">cbBTC</option>
+                    </optgroup>
+                    <optgroup label="DeFi Tokens">
+                      <option value="AAVE">AAVE</option>
+                      <option value="CRV">CRV</option>
+                      <option value="BAL">BAL</option>
+                      <option value="ARB">ARB</option>
+                      <option value="OP">OP</option>
+                      <option value="MATIC">MATIC</option>
+                    </optgroup>
                   </select>
                 </div>
 
@@ -464,6 +492,9 @@ export function YieldCalculator() {
                   >
                     <option value="ethereum">Ethereum</option>
                     <option value="polygon">Polygon</option>
+                    <option value="arbitrum">Arbitrum</option>
+                    <option value="base">Base</option>
+                    <option value="optimism">Optimism</option>
                   </select>
                 </div>
 
@@ -476,9 +507,34 @@ export function YieldCalculator() {
                     onChange={(e) => setInput(prev => ({ ...prev, toAsset: e.target.value }))}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   >
-                    <option value="USDC">USDC</option>
-                    <option value="USDT">USDT</option>
-                    <option value="DAI">DAI</option>
+                    <optgroup label="Stablecoins">
+                      <option value="USDC">USDC</option>
+                      <option value="USDT">USDT</option>
+                      <option value="DAI">DAI</option>
+                      <option value="FRAX">FRAX</option>
+                      <option value="RLUSD">RLUSD</option>
+                      <option value="USDe">USDe</option>
+                      <option value="sUSDe">sUSDe</option>
+                    </optgroup>
+                    <optgroup label="ETH & Variants">
+                      <option value="WETH">WETH</option>
+                      <option value="weETH">weETH</option>
+                      <option value="wstETH">wstETH</option>
+                      <option value="cbETH">cbETH</option>
+                      <option value="ezETH">ezETH</option>
+                    </optgroup>
+                    <optgroup label="BTC & Variants">
+                      <option value="WBTC">WBTC</option>
+                      <option value="cbBTC">cbBTC</option>
+                    </optgroup>
+                    <optgroup label="DeFi Tokens">
+                      <option value="AAVE">AAVE</option>
+                      <option value="CRV">CRV</option>
+                      <option value="BAL">BAL</option>
+                      <option value="ARB">ARB</option>
+                      <option value="OP">OP</option>
+                      <option value="MATIC">MATIC</option>
+                    </optgroup>
                   </select>
                 </div>
 

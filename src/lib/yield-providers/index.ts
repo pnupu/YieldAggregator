@@ -1,5 +1,4 @@
 import { AaveProvider } from './aave';
-import { CurveProvider } from './curve';
 import { BaseYieldProvider } from './base';
 import type { YieldOpportunity } from '../types';
 
@@ -9,7 +8,6 @@ export class YieldProviderManager {
   constructor() {
     this.providers = [
       new AaveProvider(),
-      new CurveProvider(),
     ];
   }
 
@@ -162,5 +160,5 @@ export class YieldProviderManager {
 export const yieldProviderManager = new YieldProviderManager();
 
 // Export individual providers
-export { AaveProvider, CurveProvider, BaseYieldProvider };
+export { AaveProvider, BaseYieldProvider };
 export * from '../types';

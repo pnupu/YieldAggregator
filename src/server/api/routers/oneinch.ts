@@ -42,7 +42,8 @@ export const oneInchRouter = createTRPCRouter({
     .input(z.object({
       fromChain: z.string(),
       toChain: z.string(),
-      asset: z.string(),
+      fromAsset: z.string(),
+      toAsset: z.string(),
       amount: z.string(),
       userAddress: z.string(),
     }))
@@ -50,7 +51,8 @@ export const oneInchRouter = createTRPCRouter({
       const quote = await oneInchCalculator.getSwapQuote(
         input.fromChain,
         input.toChain,
-        input.asset,
+        input.fromAsset,
+        input.toAsset,
         input.amount,
         input.userAddress
       );

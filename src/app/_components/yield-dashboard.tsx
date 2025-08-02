@@ -50,12 +50,17 @@ const getProtocolLink = (protocol: string, chain: string, poolAddress?: string, 
   return '#';
 };
 
+type SortField = 'protocol' | 'chain' | 'asset' | 'currentAPY' | 'projectedAPY' | 'tvl' | 'risk_score';
+type SortDirection = 'asc' | 'desc';
+
 export function YieldDashboard() {
   const [selectedAsset, setSelectedAsset] = useState<string>("all");
   const [selectedChain, setSelectedChain] = useState<string>("all");
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<YieldOpportunity | null>(null);
   const [targetPosition, setTargetPosition] = useState<YieldOpportunity | null>(null);
+  const [sortField, setSortField] = useState<SortField>('currentAPY');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
   const { address, isConnected, connect, disconnect, walletType } = useWalletStore();
   
@@ -74,20 +79,93 @@ export function YieldDashboard() {
     return true;
   });
 
-  const bestYield = filteredYields.length > 0 ? filteredYields.reduce(
+  // Sort the filtered yields
+  const sortedYields = [...filteredYields].sort((a, b) => {
+    let aValue: string | number;
+    let bValue: string | number;
+    
+    // Get values based on sort field
+    switch (sortField) {
+      case 'protocol':
+        aValue = a.protocol;
+        bValue = b.protocol;
+        break;
+      case 'chain':
+        aValue = a.chain;
+        bValue = b.chain;
+        break;
+      case 'asset':
+        aValue = a.asset;
+        bValue = b.asset;
+        break;
+      case 'currentAPY':
+        aValue = a.currentAPY ?? 0;
+        bValue = b.currentAPY ?? 0;
+        break;
+      case 'projectedAPY':
+        aValue = a.projectedAPY ?? 0;
+        bValue = b.projectedAPY ?? 0;
+        break;
+      case 'tvl':
+        aValue = Number(a.tvl);
+        bValue = Number(b.tvl);
+        break;
+      case 'risk_score':
+        aValue = a.risk_score ?? 0;
+        bValue = b.risk_score ?? 0;
+        break;
+      default:
+        aValue = 0;
+        bValue = 0;
+    }
+    
+    // Handle string comparison
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    
+    // Handle number comparison
+    const numA = Number(aValue);
+    const numB = Number(bValue);
+    return sortDirection === 'asc' ? numA - numB : numB - numA;
+  });
+
+  const bestYield = sortedYields.length > 0 ? sortedYields.reduce(
     (best, current) => ((current.currentAPY ?? 0) > (best.currentAPY ?? 0) ? current : best)
   ) : null;
 
-  const formatTVL = (tvl: bigint) => {
-    const million = BigInt(1000000);
-    const billion = BigInt(1000000000);
-    
-    if (tvl >= billion) {
-      return `$${(Number(tvl) / Number(billion)).toFixed(1)}B`;
-    } else if (tvl >= million) {
-      return `$${(Number(tvl) / Number(million)).toFixed(0)}M`;
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      return `$${Number(tvl).toLocaleString()}`;
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Sort icon component
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <span className="text-gray-500">↕️</span>;
+    }
+    return sortDirection === 'asc' ? 
+      <span className="text-blue-400">↑</span> : 
+      <span className="text-blue-400">↓</span>;
+  };
+
+  const formatTVL = (tvl: bigint) => {
+    // TVL is stored as USD cents, so divide by 100 first
+    const dollars = Number(tvl) / 100;
+    
+    if (dollars >= 1000000000) {
+      return `$${(dollars / 1000000000).toFixed(1)}B`;
+    } else if (dollars >= 1000000) {
+      return `$${(dollars / 1000000).toFixed(0)}M`;
+    } else {
+      return `$${dollars.toLocaleString()}`;
     }
   };
 
@@ -160,9 +238,34 @@ export function YieldDashboard() {
             className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
           >
             <option value="all">All Assets</option>
-            <option value="USDC">USDC</option>
-            <option value="USDT">USDT</option>
-            <option value="DAI">DAI</option>
+            <optgroup label="Stablecoins">
+              <option value="USDC">USDC</option>
+              <option value="USDT">USDT</option>
+              <option value="DAI">DAI</option>
+              <option value="FRAX">FRAX</option>
+              <option value="RLUSD">RLUSD</option>
+              <option value="USDe">USDe</option>
+              <option value="sUSDe">sUSDe</option>
+            </optgroup>
+            <optgroup label="ETH & Variants">
+              <option value="WETH">WETH</option>
+              <option value="weETH">weETH</option>
+              <option value="wstETH">wstETH</option>
+              <option value="cbETH">cbETH</option>
+              <option value="ezETH">ezETH</option>
+            </optgroup>
+            <optgroup label="BTC & Variants">
+              <option value="WBTC">WBTC</option>
+              <option value="cbBTC">cbBTC</option>
+            </optgroup>
+            <optgroup label="DeFi Tokens">
+              <option value="AAVE">AAVE</option>
+              <option value="CRV">CRV</option>
+              <option value="BAL">BAL</option>
+              <option value="ARB">ARB</option>
+              <option value="OP">OP</option>
+              <option value="MATIC">MATIC</option>
+            </optgroup>
           </select>
 
           <select
@@ -173,6 +276,9 @@ export function YieldDashboard() {
             <option value="all">All Chains</option>
             <option value="ethereum">Ethereum</option>
             <option value="polygon">Polygon</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="base">Base</option>
+            <option value="optimism">Optimism</option>
           </select>
         </div>
 
@@ -265,7 +371,7 @@ export function YieldDashboard() {
         <div className="px-6 py-4 border-b border-gray-700">
           <h2 className="text-xl font-bold">Yield Opportunities</h2>
           <p className="text-sm text-gray-400 mt-1">
-            Real-time data from Aave and Curve protocols
+            Real-time data from Aave protocol
           </p>
         </div>
 
@@ -273,18 +379,67 @@ export function YieldDashboard() {
           <table className="w-full">
             <thead className="bg-gray-800/50">
               <tr>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Protocol</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Chain</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Asset</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Current APY</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Projected APY</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">TVL</th>
-                <th className="text-left py-4 px-6 font-medium text-gray-300">Risk</th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('protocol')}
+                >
+                  <div className="flex items-center gap-2">
+                    Protocol <SortIcon field="protocol" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('chain')}
+                >
+                  <div className="flex items-center gap-2">
+                    Chain <SortIcon field="chain" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('asset')}
+                >
+                  <div className="flex items-center gap-2">
+                    Asset <SortIcon field="asset" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('currentAPY')}
+                >
+                  <div className="flex items-center gap-2">
+                    Current APY <SortIcon field="currentAPY" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('projectedAPY')}
+                >
+                  <div className="flex items-center gap-2">
+                    Projected APY <SortIcon field="projectedAPY" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('tvl')}
+                >
+                  <div className="flex items-center gap-2">
+                    TVL <SortIcon field="tvl" />
+                  </div>
+                </th>
+                <th 
+                  className="text-left py-4 px-6 font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('risk_score')}
+                >
+                  <div className="flex items-center gap-2">
+                    Risk <SortIcon field="risk_score" />
+                  </div>
+                </th>
                 <th className="text-left py-4 px-6 font-medium text-gray-300">Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredYields.map((opportunity, index) => (
+              {sortedYields.map((opportunity, index) => (
                 <tr key={`${opportunity.protocol}-${opportunity.chain}-${opportunity.asset}-${index}`} className="border-b border-gray-700/50 hover:bg-gray-800/30">
                   <td className="py-4 px-6">
                     <div className="flex items-center">

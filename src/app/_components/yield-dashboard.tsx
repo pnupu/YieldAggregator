@@ -110,29 +110,41 @@ export function YieldDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Filters */}
+      {/* Filters and Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="flex flex-wrap gap-4">
+          <select
+            value={selectedAsset}
+            onChange={(e) => setSelectedAsset(e.target.value)}
+            className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+          >
+            <option value="all">All Assets</option>
+            <option value="USDC">USDC</option>
+            <option value="USDT">USDT</option>
+            <option value="DAI">DAI</option>
+          </select>
+
+          <select
+            value={selectedChain}
+            onChange={(e) => setSelectedChain(e.target.value)}
+            className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+          >
+            <option value="all">All Chains</option>
+            <option value="ethereum">Ethereum</option>
+            <option value="polygon">Polygon</option>
+          </select>
+        </div>
+
+        <a
+          href="/calculator"
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition-colors text-white"
+        >
+          📊 Yield Calculator
+        </a>
+      </div>
+
+      {/* Wallet Connection */}
       <div className="flex flex-wrap gap-4 mb-8">
-        <select
-          value={selectedAsset}
-          onChange={(e) => setSelectedAsset(e.target.value)}
-          className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
-        >
-          <option value="all">All Assets</option>
-          <option value="USDC">USDC</option>
-          <option value="USDT">USDT</option>
-          <option value="DAI">DAI</option>
-        </select>
-
-        <select
-          value={selectedChain}
-          onChange={(e) => setSelectedChain(e.target.value)}
-          className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
-        >
-          <option value="all">All Chains</option>
-          <option value="ethereum">Ethereum</option>
-          <option value="polygon">Polygon</option>
-        </select>
-
         {isConnected ? (
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">

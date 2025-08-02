@@ -4,6 +4,8 @@ import { useState } from "react";
 import { api } from "@/trpc/react";
 import { useWalletStore } from "@/lib/web3";
 import { WalletModal } from "./wallet-modal";
+import { FloatingCalculator } from "./floating-calculator";
+import type { YieldOpportunity } from "@/lib/types";
 
 const getProtocolLink = (protocol: string, chain: string, poolAddress?: string, tokenAddress?: string) => {
   // Generate links to specific yield opportunities
@@ -52,6 +54,8 @@ export function YieldDashboard() {
   const [selectedAsset, setSelectedAsset] = useState<string>("all");
   const [selectedChain, setSelectedChain] = useState<string>("all");
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState<YieldOpportunity | null>(null);
+  const [targetPosition, setTargetPosition] = useState<YieldOpportunity | null>(null);
   
   const { address, isConnected, connect, disconnect, walletType } = useWalletStore();
   
@@ -97,6 +101,28 @@ export function YieldDashboard() {
     if (score <= 2) return "Low";
     if (score <= 4) return "Medium";
     return "High";
+  };
+
+  const handleAddToCalculator = (opportunity: YieldOpportunity) => {
+    if (!currentPosition) {
+      setCurrentPosition(opportunity);
+    } else if (!targetPosition) {
+      setTargetPosition(opportunity);
+    } else {
+      // If both are filled, replace the target with the new selection
+      setTargetPosition(opportunity);
+    }
+  };
+
+  const handleNavigateToCalculator = () => {
+    // Store selections in localStorage for the calculator page
+    if (currentPosition) {
+      localStorage.setItem('calculatorCurrentPosition', JSON.stringify(currentPosition));
+    }
+    if (targetPosition) {
+      localStorage.setItem('calculatorTargetPosition', JSON.stringify(targetPosition));
+    }
+    window.location.href = '/calculator';
   };
 
   if (isLoading) {
@@ -288,8 +314,11 @@ export function YieldDashboard() {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <button className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                      Move Funds
+                    <button 
+                      onClick={() => handleAddToCalculator(opportunity)}
+                      className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Add to Calculator
                     </button>
                   </td>
                 </tr>
@@ -332,6 +361,15 @@ export function YieldDashboard() {
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
         onConnect={connect}
+      />
+
+      {/* Floating Calculator */}
+      <FloatingCalculator
+        currentPosition={currentPosition}
+        targetPosition={targetPosition}
+        onClearCurrent={() => setCurrentPosition(null)}
+        onClearTarget={() => setTargetPosition(null)}
+        onCalculate={handleNavigateToCalculator}
       />
     </div>
   );

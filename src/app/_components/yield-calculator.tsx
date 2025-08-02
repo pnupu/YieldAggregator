@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/trpc/react";
+import type { YieldOpportunity } from "@/lib/types";
 
 interface CalculationInput {
   fromProtocol: string;
@@ -48,6 +49,48 @@ export function YieldCalculator() {
 
   // Fetch available yield opportunities
   const { data: yields = [], isLoading } = api.yield.getOpportunities.useQuery({});
+
+  // Load pre-filled data from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPositionStr = localStorage.getItem('calculatorCurrentPosition');
+      const targetPositionStr = localStorage.getItem('calculatorTargetPosition');
+      
+      if (currentPositionStr) {
+        try {
+          const currentPos: YieldOpportunity = JSON.parse(currentPositionStr);
+          setInput(prev => ({
+            ...prev,
+            fromProtocol: currentPos.protocol,
+            fromChain: currentPos.chain,
+            fromAsset: currentPos.asset,
+            fromAPY: currentPos.currentAPY ?? 0,
+          }));
+          // Clear from localStorage after loading
+          localStorage.removeItem('calculatorCurrentPosition');
+        } catch (error) {
+          console.error('Error parsing current position:', error);
+        }
+      }
+      
+      if (targetPositionStr) {
+        try {
+          const targetPos: YieldOpportunity = JSON.parse(targetPositionStr);
+          setInput(prev => ({
+            ...prev,
+            toProtocol: targetPos.protocol,
+            toChain: targetPos.chain,
+            toAsset: targetPos.asset,
+            toAPY: targetPos.currentAPY ?? 0,
+          }));
+          // Clear from localStorage after loading
+          localStorage.removeItem('calculatorTargetPosition');
+        } catch (error) {
+          console.error('Error parsing target position:', error);
+        }
+      }
+    }
+  }, []);
 
   const calculateProfitability = () => {
     setIsCalculating(true);

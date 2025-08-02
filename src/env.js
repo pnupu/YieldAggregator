@@ -26,10 +26,6 @@ export const env = createEnv({
     DEFILLAMA_API_KEY: z.string().optional(),
     MORALIS_API_KEY: z.string().optional(),
     
-    // Wallet Configuration
-    PRIVATE_KEY: z.string().min(1),
-    AGENT_WALLET_ADDRESS: z.string().min(1),
-    
     // Safety Limits
     MIN_PROFIT_THRESHOLD: z.string().default("0.5"),
     MAX_SLIPPAGE: z.string().default("1.0"),
@@ -66,10 +62,6 @@ export const env = createEnv({
     // External API Keys
     DEFILLAMA_API_KEY: process.env.DEFILLAMA_API_KEY,
     MORALIS_API_KEY: process.env.MORALIS_API_KEY,
-    
-    // Wallet Configuration
-    PRIVATE_KEY: process.env.PRIVATE_KEY,
-    AGENT_WALLET_ADDRESS: process.env.AGENT_WALLET_ADDRESS,
     
     // Safety Limits
     MIN_PROFIT_THRESHOLD: process.env.MIN_PROFIT_THRESHOLD,

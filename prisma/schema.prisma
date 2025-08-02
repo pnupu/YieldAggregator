@@ -10,11 +10,94 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model User {
+    id            String    @id @default(cuid())
+    walletAddress String    @unique
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+    
+    // Relations
+    positions     Position[]
+    executions    Execution[]
+    
+    @@index([walletAddress])
+}
 
-    @@index([name])
+model Position {
+    id            String   @id @default(cuid())
+    userId        String
+    protocol      String   // aave, compound, curve
+    chain         String   // ethereum, polygon
+    asset         String   // USDC, USDT, DAI
+    amount        String   // BigInt as string
+    apy           Float
+    poolAddress   String?
+    tokenAddress  String?
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    
+    // Relations
+    user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@index([userId])
+    @@index([protocol, chain, asset])
+}
+
+model YieldOpportunity {
+    id            String   @id @default(cuid())
+    protocol      String
+    chain         String
+    asset         String
+    currentAPY    Float
+    projectedAPY  Float
+    tvl           String   // BigInt as string
+    riskScore     Float
+    poolAddress   String?
+    tokenAddress  String?
+    lastUpdated   DateTime @default(now())
+    
+    @@index([protocol, chain, asset])
+    @@index([currentAPY])
+}
+
+model Execution {
+    id                    String   @id @default(cuid())
+    userId                String
+    fromProtocol          String
+    toProtocol            String
+    fromChain             String
+    toChain               String
+    asset                 String
+    amount                String   // BigInt as string
+    fromAPY               Float
+    toAPY                 Float
+    gasCost               String   // BigInt as string
+    netGain               Float
+    success               Boolean
+    txHash                String?
+    error                 String?
+    executedAt            DateTime @default(now())
+    
+    // Relations
+    user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@index([userId])
+    @@index([executedAt])
+}
+
+model YieldAnalysis {
+    id                    String   @id @default(cuid())
+    userId                String
+    currentPositionId     String
+    targetOpportunityId   String
+    netAPYGain            Float
+    executionCostPercent  Float
+    breakEvenTimeMonths   Float
+    recommendedAction     String   // execute, hold, monitor
+    expectedProfit        Float
+    riskScore             Float
+    analyzedAt            DateTime @default(now())
+    
+    @@index([userId])
+    @@index([analyzedAt])
 }

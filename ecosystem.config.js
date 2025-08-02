@@ -2,8 +2,8 @@ export default {
   apps: [
     {
       name: 'yield-optimizer',
-      script: 'npm',
-      args: 'start',
+      script: 'node_modules/.bin/next',
+      args: 'start -p 3002',
       cwd: './',
       instances: 1,
       autorestart: true,

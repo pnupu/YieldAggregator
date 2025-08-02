@@ -41,16 +41,18 @@ export abstract class BaseYieldProvider {
     utilization: number
   ): number {
     // Higher APY = higher risk (simplified model)
-    const apyRisk = Math.min(apy / 20, 1); // Normalize to 0-1, 20% APY = max risk
+    const apyRisk = Math.min((apy || 0) / 20, 1); // Normalize to 0-1, 20% APY = max risk
     
-    // Lower TVL = higher risk
-    const tvlRisk = Math.max(1 - Number(tvl) / 1e9, 0); // $1B TVL = min risk
+    // Lower TVL = higher risk (use reasonable scale for TVL)
+    const tvlNumber = Number(tvl) || 0;
+    const tvlRisk = Math.max(1 - tvlNumber / 1e8, 0); // $100M TVL = min risk
     
     // Higher utilization = higher risk
-    const utilizationRisk = utilization / 100;
+    const utilizationRisk = (utilization || 0) / 100;
     
     // Weighted average (APY has highest weight)
-    return (apyRisk * 0.5 + tvlRisk * 0.3 + utilizationRisk * 0.2) * 10;
+    const score = (apyRisk * 0.5 + tvlRisk * 0.3 + utilizationRisk * 0.2) * 10;
+    return Math.max(0.1, Math.min(10, score)); // Clamp between 0.1 and 10
   }
 
   /**

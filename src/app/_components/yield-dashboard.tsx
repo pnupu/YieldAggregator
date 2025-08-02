@@ -26,7 +26,7 @@ export function YieldDashboard() {
   });
 
   const bestYield = filteredYields.length > 0 ? filteredYields.reduce(
-    (best, current) => (current.currentAPY > best.currentAPY ? current : best)
+    (best, current) => ((current.currentAPY ?? 0) > (best.currentAPY ?? 0) ? current : best)
   ) : null;
 
   const formatTVL = (tvl: bigint) => {
@@ -185,23 +185,23 @@ export function YieldDashboard() {
                   <td className="py-4 px-6 font-medium">{opportunity.asset}</td>
                   <td className="py-4 px-6">
                     <span className="text-green-400 font-bold">
-                      {opportunity.currentAPY.toFixed(2)}%
+                      {opportunity.currentAPY ? opportunity.currentAPY.toFixed(2) : '0.00'}%
                     </span>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-blue-400">
-                      {opportunity.projectedAPY.toFixed(2)}%
+                      {opportunity.projectedAPY ? opportunity.projectedAPY.toFixed(2) : '0.00'}%
                     </span>
                   </td>
                   <td className="py-4 px-6 text-gray-300">
                     {formatTVL(opportunity.tvl)}
                   </td>
                   <td className="py-4 px-6">
-                    <span className={`font-medium ${getRiskColor(opportunity.risk_score)}`}>
-                      {getRiskLabel(opportunity.risk_score)}
+                    <span className={`font-medium ${getRiskColor(opportunity.risk_score ?? 0)}`}>
+                      {getRiskLabel(opportunity.risk_score ?? 0)}
                     </span>
                     <div className="text-xs text-gray-500">
-                      {opportunity.risk_score.toFixed(1)}
+                      {(opportunity.risk_score ?? 0).toFixed(1)}
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -226,7 +226,7 @@ export function YieldDashboard() {
           <div className="flex items-start">
             <span className="text-green-400 mr-2">💡</span>
             <span>
-              {bestYield ? `Polygon Curve offers the highest yield at ${bestYield.currentAPY.toFixed(2)}% APY for ${bestYield.asset}` : "Analyzing yield opportunities..."}
+              {bestYield ? `Polygon Curve offers the highest yield at ${(bestYield.currentAPY ?? 0).toFixed(2)}% APY for ${bestYield.asset}` : "Analyzing yield opportunities..."}
             </span>
           </div>
           <div className="flex items-start">

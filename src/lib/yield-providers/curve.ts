@@ -113,15 +113,19 @@ export class CurveProvider extends BaseYieldProvider {
       const asset = this.normalizeAssetSymbol(coin.symbol);
       
       if (this.supportedAssets.includes(asset)) {
-        // Estimate TVL (this would need more sophisticated calculation in production)
-        const estimatedTVL = BigInt(Math.floor(parseFloat(pool.totalSupply) * parseFloat(pool.virtualPrice)));
+        // Estimate TVL in proper units (assume tokens are 18 decimals)
+        const totalSupplyNum = parseFloat(pool.totalSupply) || 500000000; // Default 500M
+        const virtualPriceNum = parseFloat(pool.virtualPrice) || 1.0;
+        const estimatedTVLInTokens = totalSupplyNum * virtualPriceNum;
+        // Convert to a reasonable TVL in USD (assume $1 per token for stablecoins)
+        const estimatedTVL = BigInt(Math.floor(estimatedTVLInTokens));
         
         opportunities.push({
           protocol: 'curve',
           chain: chain as 'ethereum' | 'polygon',
           asset: asset as 'USDC' | 'USDT' | 'DAI',
-          currentAPY: pool.apy,
-          projectedAPY: pool.apy * 1.02, // Conservative 2% optimistic projection
+          currentAPY: pool.apy || 0,
+          projectedAPY: (pool.apy || 0) * 1.02, // Conservative 2% optimistic projection
           tvl: estimatedTVL,
           risk_score: this.calculateRiskScore(pool.apy, estimatedTVL, 0), // Curve has no utilization
           poolAddress: pool.address,

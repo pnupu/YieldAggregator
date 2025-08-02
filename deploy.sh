@@ -21,7 +21,7 @@ npm run build
 
 # Start with PM2
 echo "🚀 Starting application with PM2 on port 3002..."
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 
 # Save PM2 configuration
 echo "💾 Saving PM2 configuration..."

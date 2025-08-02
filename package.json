@@ -19,7 +19,7 @@
     "preview": "next build && next start",
     "start": "next start -p 3002",
     "typecheck": "tsc --noEmit",
-    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop yield-optimizer",
     "pm2:restart": "pm2 restart yield-optimizer",
     "pm2:delete": "pm2 delete yield-optimizer",

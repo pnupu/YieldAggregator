@@ -1,10 +1,10 @@
-export default {
+module.exports = {
   apps: [
     {
       name: 'yield-optimizer',
-      script: 'node_modules/.bin/next',
+      script: './node_modules/.bin/next',
       args: 'start -p 3002',
-      cwd: './',
+      cwd: __dirname,
       instances: 1,
       autorestart: true,
       watch: false,

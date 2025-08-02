@@ -52,39 +52,60 @@ export class CrossChainExecutor {
    */
   async getCrossChainQuote(params: CrossChainSwapParams): Promise<FusionPlusQuote> {
     try {
-      // Use 1inch Cross-Chain API directly via HTTP
-      const response = await axios.get(`${env.ONEINCH_BASE_URL}/fusion-plus/quoter/v1.0/quote`, {
+      // Debug log the parameters being sent
+      console.log('1inch Fusion+ API request params:', {
+        srcChain: params.fromChain,
+        dstChain: params.toChain,
+        srcTokenAddress: params.fromToken,
+        dstTokenAddress: params.toToken,
+        amount: params.amount,
+        walletAddress: params.userAddress,
+        enableEstimate: true,
+        fee: 0,
+      });
+
+      // Use 1inch Fusion+ API for cross-chain quotes
+      const response = await axios.get(`${env.ONEINCH_BASE_URL}/fusion-plus/quoter/v1.0/quote/receive`, {
         headers: {
           'Authorization': `Bearer ${env.ONEINCH_API_KEY}`,
           'Accept': 'application/json',
         },
         params: {
-          src: params.fromToken,
-          dst: params.toToken,
+          srcChain: params.fromChain,
+          dstChain: params.toChain,
+          srcTokenAddress: params.fromToken,
+          dstTokenAddress: params.toToken,
           amount: params.amount,
-          from: params.userAddress,
-          srcChainId: params.fromChain,
-          dstChainId: params.toChain,
-          slippage: params.slippage ?? 1,
+          walletAddress: params.userAddress,
           enableEstimate: true,
+          fee: 0, // 0 fee in bps
         },
       });
 
       const quote = response.data as {
-        srcAmount?: string;
-        dstAmount?: string;
-        gas?: string;
-        gasPrice?: string;
-        protocols?: unknown[];
-        estimatedGas?: string;
+        quoteId?: object;
+        srcTokenAmount?: string;
+        dstTokenAmount?: string;
+        presets?: {
+          fast?: {
+            gasCost?: {
+              gasBumpEstimate?: number;
+              gasPriceEstimate?: string;
+            };
+          };
+        };
       };
+      
+      const gasEstimate = quote.presets?.fast?.gasCost?.gasBumpEstimate ?? 0;
+      const gasPrice = quote.presets?.fast?.gasCost?.gasPriceEstimate ?? '0';
+      
       return {
-        srcAmount: quote.srcAmount ?? params.amount,
-        dstAmount: quote.dstAmount ?? '0',
-        gas: Number(quote.gas) || 0,
-        gasPrice: quote.gasPrice ?? '0',
-        protocols: quote.protocols ?? [],
-        estimatedGas: Number(quote.estimatedGas) || 0,
+        srcAmount: quote.srcTokenAmount ?? params.amount,
+        dstAmount: quote.dstTokenAmount ?? '0',
+        gas: gasEstimate,
+        gasPrice: gasPrice,
+        protocols: [], // Not provided in Fusion+ API
+        estimatedGas: gasEstimate,
         srcToken: params.fromToken,
         dstToken: params.toToken,
         srcChainId: params.fromChain,
@@ -328,13 +349,7 @@ export class CrossChainExecutor {
       return tokens;
     } catch (error) {
       console.error('Error getting supported tokens:', error);
-      // Fallback to known stablecoin addresses if API fails
-      const fallbackTokens = [
-        { symbol: 'USDC', address: chainId === 1 ? '0xA0b86a33E6417fA1faCBE1eF4f7cb8Dd8B16e5f3' : '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174' },
-        { symbol: 'USDT', address: chainId === 1 ? '0xdAC17F958D2ee523a2206206994597C13D831ec7' : '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' },
-        { symbol: 'DAI', address: chainId === 1 ? '0x6B175474E89094C44Da98b954EedeAC495271d0F' : '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063' }
-      ];
-      return fallbackTokens;
+      throw new Error(`Failed to get supported tokens for chain ${chainId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

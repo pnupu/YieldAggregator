@@ -78,15 +78,11 @@ export function FloatingCalculator({
     const apyGain = (targetPosition.currentAPY ?? 0) - (currentPosition.currentAPY ?? 0);
     const estimatedAnnualGain = amountNum * (apyGain / 100);
     
-    // Use real costs if available, otherwise fallback
-    const estimatedMonthlyCost = realCosts?.totalCost ?? (() => {
-      const gasCostEth = 50;
-      const gasCostPoly = 2;
-      const fromCost = currentPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
-      const toCost = targetPosition.chain === 'ethereum' ? gasCostEth : gasCostPoly;
-      const crossChainMultiplier = currentPosition.chain !== targetPosition.chain ? 2 : 1;
-      return (fromCost + toCost) * crossChainMultiplier;
-    })();
+    // Only use real 1inch costs - no fallbacks
+    const estimatedMonthlyCost = realCosts?.totalCost;
+
+    // Only show analysis if we have real cost data
+    if (!estimatedMonthlyCost) return null;
 
     const worthIt = estimatedAnnualGain > estimatedMonthlyCost * 12 && apyGain > 0;
 

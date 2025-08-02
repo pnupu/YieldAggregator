@@ -53,10 +53,7 @@ export class OneInchCalculatorService {
       };
     } catch (error) {
       console.error('Error fetching gas prices:', error);
-      // Fallback to estimated gas prices
-      return chainId === 1 
-        ? { standard: 20, fast: 25, instant: 30 } // Ethereum Gwei
-        : { standard: 50, fast: 60, instant: 80 }; // Polygon Gwei
+      throw new Error(`Failed to fetch gas prices for chain ${chainId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -141,12 +138,22 @@ export class OneInchCalculatorService {
       const fromTokenAddress = TOKEN_ADDRESSES[asset as keyof typeof TOKEN_ADDRESSES]?.[fromChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
       const toTokenAddress = TOKEN_ADDRESSES[asset as keyof typeof TOKEN_ADDRESSES]?.[toChain as keyof typeof TOKEN_ADDRESSES.USDC] ?? '';
 
+      console.log(`Token lookup: ${asset} from ${fromChain} to ${toChain}`);
+      console.log(`From token address: ${fromTokenAddress}`);
+      console.log(`To token address: ${toTokenAddress}`);
+
+      // Convert amount to wei (assuming 18 decimals for most tokens, 6 for USDC/USDT)
+      const decimals = ['USDC', 'USDT'].includes(asset) ? 6 : 18;
+      const amountInWei = (parseFloat(amount) * Math.pow(10, decimals)).toString();
+      
+      console.log(`Converting ${amount} ${asset} to wei: ${amountInWei} (${decimals} decimals)`);
+
       const costs = await crossChainExecutor.estimateExecutionCosts({
         fromChain: fromChainId,
         toChain: toChainId,
         fromToken: fromTokenAddress,
         toToken: toTokenAddress,
-        amount,
+        amount: amountInWei,
         userAddress,
         slippage: 1,
       });
@@ -159,13 +166,7 @@ export class OneInchCalculatorService {
       };
     } catch (error) {
       console.error('Error getting swap quote:', error);
-      // Fallback estimation
-      return {
-        costUSD: fromChain === 'ethereum' ? 50 : 2, // Rough estimates
-        gasUnits: 200000,
-        bridgeFee: 0,
-        estimatedTime: 5,
-      };
+      throw new Error(`Failed to get swap quote from ${fromChain} to ${toChain}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -208,21 +209,7 @@ export class OneInchCalculatorService {
       };
     } catch (error) {
       console.error('Error calculating move costs:', error);
-      // Fallback to simple estimates
-      const isEthereum = fromChain === 'ethereum' || toChain === 'ethereum';
-      const isCrossChain = fromChain !== toChain;
-      
-      return {
-        withdrawGas: 150000,
-        withdrawCost: isEthereum ? 30 : 1,
-        depositGas: 120000,
-        depositCost: isEthereum ? 25 : 1,
-        swapGas: isCrossChain ? 200000 : undefined,
-        swapCost: isCrossChain ? (isEthereum ? 40 : 2) : undefined,
-        bridgeFee: 0,
-        totalCost: isCrossChain ? (isEthereum ? 95 : 4) : (isEthereum ? 55 : 2),
-        estimatedTime: isCrossChain ? 7 : 3,
-      };
+      throw new Error(`Failed to calculate move costs from ${fromProtocol}/${fromChain} to ${toProtocol}/${toChain}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -246,11 +233,7 @@ export class OneInchCalculatorService {
       return prices;
     } catch (error) {
       console.error('Error fetching token prices:', error);
-      // Fallback to $1 for stablecoins
-      return tokens.reduce((acc, token) => {
-        acc[token] = 1.0;
-        return acc;
-      }, {} as Record<string, number>);
+      throw new Error(`Failed to fetch token prices: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

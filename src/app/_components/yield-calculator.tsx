@@ -69,7 +69,7 @@ export function YieldCalculator() {
   const calculateCostsMutation = api.oneinch.calculateMoveCosts.useMutation();
 
   // Real 1inch cost estimation
-  const estimateRealCosts = async (
+  const estimateRealCosts = useCallback(async (
     fromProtocol: string,
     fromChain: string,
     fromAsset: string,
@@ -110,27 +110,9 @@ export function YieldCalculator() {
       };
     } catch (error) {
       console.error('Error getting real costs:', error);
-      // Fallback to simplified estimation
-      const isEthereum = fromChain === 'ethereum' || toChain === 'ethereum';
-      const isCrossChain = fromChain !== toChain;
-      
-      return {
-        totalCost: isCrossChain ? (isEthereum ? 95 : 4) : (isEthereum ? 55 : 2),
-        breakdown: {
-          withdrawCost: isEthereum ? 30 : 1,
-          swapCost: isCrossChain ? (isEthereum ? 40 : 2) : 0,
-          depositCost: isEthereum ? 25 : 1,
-          bridgeFee: 0,
-        },
-        estimatedTime: isCrossChain ? 7 : 3,
-        gasDetails: {
-          withdrawGas: 150000,
-          swapGas: isCrossChain ? 200000 : 0,
-          depositGas: 120000,
-        }
-      };
+      throw error; // Re-throw the error to surface API issues
     }
-  };
+  }, [calculateCostsMutation]);
 
   const calculateProfitability = useCallback(async () => {
     setIsCalculating(true);

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run typecheck:*)",
       "Bash(npm run lint)",
-      "Bash(npm run check:*)"
+      "Bash(npm run check:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }

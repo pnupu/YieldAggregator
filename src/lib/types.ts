@@ -98,15 +98,19 @@ export const CHAIN_IDS = {
 
 export const TOKEN_ADDRESSES = {
   USDC: {
-    ethereum: '0xA0b86a33E6417fA1faCBE1eF4f7cb8Dd8B16e5f3',
-    polygon: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    ethereum: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC on Ethereum (official)
+    polygon: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC on Polygon
   },
   USDT: {
-    ethereum: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    polygon: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+    ethereum: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT on Ethereum  
+    polygon: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // USDT on Polygon
   },
   DAI: {
-    ethereum: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    polygon: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
+    ethereum: '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI on Ethereum
+    polygon: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', // DAI on Polygon  
+  },
+  WETH: {
+    ethereum: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH on Ethereum
+    polygon: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', // WETH on Polygon
   },
 } as const;

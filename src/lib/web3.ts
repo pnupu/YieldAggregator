@@ -1,13 +1,15 @@
 import { ethers } from 'ethers';
 import { create } from 'zustand';
 
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  isMetaMask?: boolean;
+}
+
 // Extend Window interface to include ethereum
 declare global {
   interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      isMetaMask?: boolean;
-    };
+    ethereum?: EthereumProvider;
   }
 }
 
@@ -17,9 +19,11 @@ export interface WalletState {
   chainId: number | null;
   provider: ethers.BrowserProvider | null;
   signer: ethers.JsonRpcSigner | null;
-  connect: () => Promise<void>;
+  walletType: string | null;
+  connect: (walletId?: string, customProvider?: EthereumProvider) => Promise<void>;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
+  getAvailableWallets: () => string[];
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
@@ -28,14 +32,45 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   chainId: null,
   provider: null,
   signer: null,
+  walletType: null,
 
-  connect: async () => {
-    if (typeof window === 'undefined' || !window.ethereum) {
-      throw new Error('MetaMask not found');
+  getAvailableWallets: () => {
+    if (typeof window === 'undefined') return [];
+    
+    const wallets: string[] = [];
+    
+    if (window.ethereum?.isMetaMask) {
+      wallets.push('MetaMask');
+    }
+    
+    return wallets;
+  },
+
+  connect: async (walletId?: string, customProvider?: EthereumProvider) => {
+    if (typeof window === 'undefined') {
+      throw new Error('Window not available');
+    }
+
+    let targetProvider = customProvider;
+    let walletName = walletId ?? 'Unknown';
+
+    // If no custom provider specified, try to auto-detect or use default
+    if (!targetProvider) {
+      if (!window.ethereum) {
+        throw new Error('MetaMask not found. Please install MetaMask.');
+      }
+      if (!window.ethereum.isMetaMask) {
+        throw new Error('Please use MetaMask wallet.');
+      }
+      targetProvider = window.ethereum;
+      walletName = 'MetaMask';
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum as ethers.Eip1193Provider);
+      // Request account access
+      await targetProvider.request({ method: 'eth_requestAccounts' });
+      
+      const provider = new ethers.BrowserProvider(targetProvider as ethers.Eip1193Provider);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
       const network = await provider.getNetwork();
@@ -46,9 +81,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         chainId: Number(network.chainId),
         provider,
         signer,
+        walletType: walletName,
       });
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
+      console.error(`Failed to connect to ${walletName}:`, error);
       throw error;
     }
   },
@@ -60,6 +96,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       chainId: null,
       provider: null,
       signer: null,
+      walletType: null,
     });
   },
 

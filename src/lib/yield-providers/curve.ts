@@ -120,14 +120,17 @@ export class CurveProvider extends BaseYieldProvider {
         // Convert to a reasonable TVL in USD (assume $1 per token for stablecoins)
         const estimatedTVL = BigInt(Math.floor(estimatedTVLInTokens));
         
+        // Ensure we have a reasonable APY
+        const currentAPY = pool.apy || this.getDefaultAPY(asset, chain);
+        
         opportunities.push({
           protocol: 'curve',
           chain: chain as 'ethereum' | 'polygon',
           asset: asset as 'USDC' | 'USDT' | 'DAI',
-          currentAPY: pool.apy || 0,
-          projectedAPY: (pool.apy || 0) * 1.02, // Conservative 2% optimistic projection
+          currentAPY,
+          projectedAPY: currentAPY * 1.02, // Conservative 2% optimistic projection
           tvl: estimatedTVL,
-          risk_score: this.calculateRiskScore(pool.apy, estimatedTVL, 0), // Curve has no utilization
+          risk_score: this.calculateRiskScore(currentAPY, estimatedTVL, 0), // Curve has no utilization
           poolAddress: pool.address,
           tokenAddress: coin.address,
         });
@@ -135,6 +138,17 @@ export class CurveProvider extends BaseYieldProvider {
     }
     
     return opportunities;
+  }
+
+  private getDefaultAPY(asset: string, chain: string): number {
+    // Default APYs when API data is unavailable
+    const defaultAPYs = {
+      ethereum: { USDC: 3.2, USDT: 3.1, DAI: 3.4 },
+      polygon: { USDC: 5.8, USDT: 5.6, DAI: 6.1 },
+    };
+    
+    const chainDefaults = defaultAPYs[chain as keyof typeof defaultAPYs] || defaultAPYs.ethereum;
+    return chainDefaults[asset as keyof typeof chainDefaults] || 2.0;
   }
 
   private normalizeAssetSymbol(symbol: string): string {
@@ -154,12 +168,16 @@ export class CurveProvider extends BaseYieldProvider {
       polygon: { USDC: 5.8, USDT: 5.6, DAI: 6.1 },
     };
 
-    const chainAPYs = baseAPYs[chain as keyof typeof baseAPYs] || baseAPYs.ethereum;
-    const poolsConfig = this.STABLECOIN_POOLS[chain as keyof typeof this.STABLECOIN_POOLS] || this.STABLECOIN_POOLS.ethereum;
+    const chainAPYs = baseAPYs[chain as keyof typeof baseAPYs] ?? baseAPYs.ethereum;
+
+    // Use real pool addresses for better links
+    const poolAddress = chain === 'ethereum' 
+      ? '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7' // Real 3Pool address on Ethereum
+      : '0x445FE580eF8d70FF569aB36e80c647af338db351'; // Real aave3pool on Polygon
 
     return [{
-      address: ('3pool' in poolsConfig) ? poolsConfig['3pool'] : ('aave3pool' in poolsConfig) ? poolsConfig.aave3pool : '0x123',
-      name: '3Pool',
+      address: poolAddress,
+      name: chain === 'ethereum' ? '3Pool' : 'Aave 3Pool',
       coins: [
         {
           symbol: 'DAI',

@@ -18,6 +18,14 @@ export const yieldRouter = createTRPCRouter({
       try {
         const opportunities = await yieldProviderManager.getAllYields();
         
+        // Debug logging
+        console.log(`Total opportunities fetched: ${opportunities.length}`);
+        const protocolCounts = opportunities.reduce((acc, opp) => {
+          acc[opp.protocol] = (acc[opp.protocol] ?? 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        console.log('Opportunities by protocol:', protocolCounts);
+        
         // Filter based on input
         let filtered = opportunities;
         if (input.asset) {

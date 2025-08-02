@@ -3,12 +3,57 @@
 import { useState } from "react";
 import { api } from "@/trpc/react";
 import { useWalletStore } from "@/lib/web3";
+import { WalletModal } from "./wallet-modal";
+
+const getProtocolLink = (protocol: string, chain: string, poolAddress?: string, tokenAddress?: string) => {
+  // Generate links to specific yield opportunities
+  switch (protocol) {
+    case 'aave':
+      if (chain === 'ethereum') {
+        return tokenAddress 
+          ? `https://app.aave.com/reserve-overview/?underlyingAsset=${tokenAddress}&marketName=proto_mainnet_v3`
+          : "https://app.aave.com/?marketName=proto_mainnet_v3";
+      } else if (chain === 'polygon') {
+        return tokenAddress 
+          ? `https://app.aave.com/reserve-overview/?underlyingAsset=${tokenAddress}&marketName=proto_polygon_v3`
+          : "https://app.aave.com/?marketName=proto_polygon_v3";
+      }
+      break;
+    
+    case 'curve':
+      if (poolAddress && poolAddress !== '0x') {
+        if (chain === 'ethereum') {
+          // For Ethereum, use the known pool names or addresses
+          if (poolAddress === '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7') {
+            return 'https://curve.fi/3pool'; // 3Pool
+          }
+          return `https://curve.fi/#/ethereum/pools/${poolAddress}/deposit`;
+        } else if (chain === 'polygon') {
+          if (poolAddress === '0x445FE580eF8d70FF569aB36e80c647af338db351') {
+            return 'https://polygon.curve.fi/aave'; // Aave pool
+          }
+          return `https://polygon.curve.fi/#/polygon/pools/${poolAddress}/deposit`;
+        }
+      }
+      // Fallback to main Curve pages
+      return chain === 'polygon' ? "https://polygon.curve.fi/" : "https://curve.fi/";
+    
+    case 'compound':
+      return "https://app.compound.finance/";
+    
+    default:
+      return '#';
+  }
+  
+  return '#';
+};
 
 export function YieldDashboard() {
   const [selectedAsset, setSelectedAsset] = useState<string>("all");
   const [selectedChain, setSelectedChain] = useState<string>("all");
+  const [showWalletModal, setShowWalletModal] = useState(false);
   
-  const { address, isConnected, connect, disconnect } = useWalletStore();
+  const { address, isConnected, connect, disconnect, walletType } = useWalletStore();
   
   // Fetch real yield data
   const { data: yields = [], isLoading } = api.yield.getOpportunities.useQuery({
@@ -90,9 +135,16 @@ export function YieldDashboard() {
 
         {isConnected ? (
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">
-              {address?.slice(0, 6)}...{address?.slice(-4)}
-            </span>
+            <div className="flex items-center gap-2">
+              {walletType && (
+                <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                  {walletType}
+                </span>
+              )}
+              <span className="text-sm text-gray-400">
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </span>
+            </div>
             <button 
               onClick={disconnect}
               className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-medium transition-colors"
@@ -102,10 +154,22 @@ export function YieldDashboard() {
           </div>
         ) : (
           <button 
-            onClick={connect}
+            onClick={async () => {
+              const availableWallets = ['MetaMask']; // Since we only support MetaMask
+              if (availableWallets.length === 1) {
+                // Directly connect to MetaMask if it's the only option
+                try {
+                  await connect();
+                } catch (error) {
+                  console.error('Failed to connect to MetaMask:', error);
+                }
+              } else {
+                setShowWalletModal(true);
+              }
+            }}
             className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-medium transition-colors"
           >
-            Connect Wallet
+            Connect MetaMask
           </button>
         )}
       </div>
@@ -174,7 +238,14 @@ export function YieldDashboard() {
                       <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold mr-3">
                         {opportunity.protocol?.[0]?.toUpperCase() ?? 'P'}
                       </div>
-                      <span className="font-medium capitalize">{opportunity.protocol}</span>
+                      <a 
+                        href={getProtocolLink(opportunity.protocol, opportunity.chain, opportunity.poolAddress, opportunity.tokenAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium capitalize text-blue-400 hover:text-blue-300 transition-colors"
+                      >
+                        {opportunity.protocol}
+                      </a>
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -243,6 +314,13 @@ export function YieldDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Wallet Selection Modal */}
+      <WalletModal 
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnect={connect}
+      />
     </div>
   );
 }
